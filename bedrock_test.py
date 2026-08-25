@@ -1,3 +1,4 @@
+import json
 import boto3
 
 
@@ -15,17 +16,23 @@ meeting_text = """
 """
 
 prompt = f"""
-以下の会議内容を整理してください。
+以下の会議内容を整理し、JSON形式だけで回答してください。
+JSON以外の説明やマークダウンは付けないでください。
+記載されていない情報は推測せず、nullにしてください。
 
-出力項目：
-・会議の要約
-・決定事項
-・TODO
-・担当者
-・期限
-・次回会議
-
-記載されていない情報は推測しないでください。
+以下の形式にしてください。
+{{
+    "summary": "会議の要約",
+    "decisions": ["決定事項"],
+    "todos": [
+        {{
+            "task": "TODOの内容",
+            "assignee": "担当者",
+            "deadline": "期限"
+        }}
+    ],
+    "next_meeting": "次回会議"
+}}
 
 会議内容：
 {meeting_text}
@@ -46,4 +53,6 @@ response = bedrock.converse(
 )
 
 result = response["output"]["message"]["content"][0]["text"]
-print(result)
+minutes = json.loads(result)
+
+print(json.dumps(minutes, ensure_ascii=False, indent=2))
