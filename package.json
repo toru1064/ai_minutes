@@ -1,0 +1,27 @@
+{
+  "name": "ai_minutes",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite frontend --port 5500"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/toru1064/ai_minutes.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/toru1064/ai_minutes/issues"
+  },
+  "homepage": "https://github.com/toru1064/ai_minutes#readme",
+  "dependencies": {
+    "oidc-client-ts": "^3.5.0"
+  },
+  "devDependencies": {
+    "vite": "^8.2.2"
+  }
+}

@@ -1,0 +1,115 @@
+/* 画面全体 */
+body {
+    margin: 0;
+    background-color: #f4f7fb;
+    color: #263238;
+    font-family: Arial, "Hiragino Kaku Gothic ProN", sans-serif;
+}
+
+/* メイン部分 */
+.container {
+    width: min(800px, calc(100% - 40px));
+    margin: 50px auto;
+    padding: 32px;
+    box-sizing: border-box;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+h1 {
+    margin-top: 0;
+    color: #1f4e79;
+}
+
+.description {
+    margin-bottom: 30px;
+    color: #607d8b;
+}
+
+/* 入力フォーム */
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
+textarea {
+    width: 100%;
+    min-height: 220px;
+    padding: 14px;
+    box-sizing: border-box;
+    border: 1px solid #b0bec5;
+    border-radius: 8px;
+    font-size: 16px;
+    line-height: 1.6;
+    resize: vertical;
+}
+
+textarea:focus {
+    border-color: #1976d2;
+    outline: none;
+}
+
+/* 生成ボタン */
+button {
+    width: 100%;
+    margin-top: 16px;
+    padding: 13px;
+    border: none;
+    border-radius: 8px;
+    background-color: #1976d2;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #1565c0;
+}
+
+button:disabled {
+    background-color: #90a4ae;
+    cursor: not-allowed;
+}
+
+/* メッセージと生成結果 */
+#status-message {
+    margin-top: 20px;
+    color: #d32f2f;
+}
+
+#result {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid #cfd8dc;
+}
+
+.result-item {
+    margin-top: 20px;
+    padding: 18px;
+    background-color: #f8fafc;
+    border-left: 4px solid #1976d2;
+    border-radius: 6px;
+}
+
+.result-item h3 {
+    margin-top: 0;
+    color: #1f4e79;
+}
+
+.result-item p,
+.result-item ul {
+    margin-bottom: 0;
+    line-height: 1.7;
+}
+
+/* スマートフォン用 */
+@media (max-width: 600px) {
+    .container {
+        width: calc(100% - 24px);
+        margin: 20px auto;
+        padding: 20px;
+    }
+}

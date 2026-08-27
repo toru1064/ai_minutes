@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AI議事録</title>
+
+    <!-- CSSを読み込む -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- JavaScriptを読み込む -->
+    <script type="module" src="script.js"></script>
+</head>
+
+<body>
+    <main class="container">
+        <h1>AI議事録</h1>
+        <p class="description">
+            会議内容を入力すると、AIが議事録を作成します。
+        </p>
+
+        <!-- ログイン状態 -->
+        <section class="auth-area">
+            <p id="user-status">ログイン状態を確認しています...</p>
+
+            <button type="button" id="login-button" hidden>
+                ログイン
+            </button>
+
+            <button type="button" id="logout-button" hidden>
+                ログアウト
+            </button>
+        </section>
+
+        <!-- 会議内容の入力フォーム -->
+        <form id="minutes-form">
+            <label for="meeting-text">会議内容</label>
+
+            <textarea
+                id="meeting-text"
+                placeholder="会議内容を入力してください"
+                required
+            ></textarea>
+
+            <button type="submit" id="generate-button">
+                議事録を作成
+            </button>
+        </form>
+
+        <!-- 処理中やエラーのメッセージ -->
+        <p id="status-message"></p>
+
+        <!-- AIが生成した結果 -->
+        <section id="result" hidden>
+            <h2>生成結果</h2>
+
+            <div class="result-item">
+                <h3>会議の要約</h3>
+                <p id="summary"></p>
+            </div>
+
+            <div class="result-item">
+                <h3>決定事項</h3>
+                <ul id="decisions"></ul>
+            </div>
+
+            <div class="result-item">
+                <h3>TODO</h3>
+                <ul id="todos"></ul>
+            </div>
+
+            <div class="result-item">
+                <h3>次回会議</h3>
+                <p id="next-meeting"></p>
+            </div>
+        </section>
+    </main>
+</body>
+</html>
