@@ -35,6 +35,48 @@
 
         <!-- 会議内容の入力フォーム -->
         <form id="minutes-form">
+            <!-- 議事録の基本情報 -->
+            <div class="form-grid">
+                <div>
+                    <label for="meeting-name">会議名</label>
+                    <input
+                        type="text"
+                        id="meeting-name"
+                        placeholder="例：開発会議"
+                        required
+                    >
+                </div>
+
+                <div>
+                    <label for="meeting-date">会議日</label>
+                    <input
+                        type="date"
+                        id="meeting-date"
+                        required
+                    >
+                </div>
+
+                <div>
+                    <label for="assignee">議事録担当者</label>
+                    <input
+                        type="text"
+                        id="assignee"
+                        placeholder="例：田中"
+                        required
+                    >
+                </div>
+
+                <div>
+                    <label for="approver">承認者</label>
+                    <input
+                        type="text"
+                        id="approver"
+                        placeholder="例：佐藤"
+                        required
+                    >
+                </div>
+            </div>
+
             <label for="meeting-text">会議内容</label>
 
             <textarea
@@ -74,6 +116,13 @@
                 <h3>次回会議</h3>
                 <p id="next-meeting"></p>
             </div>
+
+            <!-- 確認した議事録をDynamoDBへ保存 -->
+            <button type="button" id="save-button">
+                議事録を保存
+            </button>
+
+            <p id="save-message"></p>
         </section>
     </main>
 </body>

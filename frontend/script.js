@@ -7,7 +7,10 @@ import {
 
 
 // API GatewayのURL
-const apiUrl =
+const generateApiUrl  =
+    "https://ba2lg9ckm9.execute-api.ap-northeast-1.amazonaws.com/minutes/generate";
+
+const saveApiUrl =
     "https://ba2lg9ckm9.execute-api.ap-northeast-1.amazonaws.com/minutes";
 
 // HTMLの部品を取得
@@ -19,8 +22,17 @@ const resultSection = document.getElementById("result");
 const userStatus = document.getElementById("user-status");
 const loginButton = document.getElementById("login-button");
 const logoutButton = document.getElementById("logout-button");
+const meetingName = document.getElementById("meeting-name");
+const meetingDate = document.getElementById("meeting-date");
+const assignee = document.getElementById("assignee");
+const approver = document.getElementById("approver");
+const saveButton = document.getElementById("save-button");
+const saveMessage = document.getElementById("save-message");
 
 let currentUser = null;
+
+// AIが生成した議事録を一時的に保持
+let generatedMinutes = null;
 
 
 // ログイン状態を確認
@@ -85,7 +97,7 @@ form.addEventListener("submit", async (event) => {
 
     try {
         // JWTトークン付きでAPIを呼び出す
-        const response = await fetch(apiUrl, {
+        const response = await fetch(generateApiUrl, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -105,6 +117,10 @@ form.addEventListener("submit", async (event) => {
             );
         }
 
+        // 保存ボタンで利用するため生成結果を保持
+        generatedMinutes = data;
+        saveMessage.textContent = "";
+
         displayMinutes(data);
 
         statusMessage.textContent = "";
@@ -116,6 +132,57 @@ form.addEventListener("submit", async (event) => {
     }
 });
 
+// 議事録保存ボタンを押したとき
+saveButton.addEventListener("click", async () => {
+    if (!currentUser || currentUser.expired) {
+        saveMessage.textContent = "ログインしてください";
+        return;
+    }
+
+    if (!generatedMinutes) {
+        saveMessage.textContent =
+            "先にAI議事録を作成してください";
+        return;
+    }
+
+    saveButton.disabled = true;
+    saveMessage.textContent = "保存しています...";
+
+    try {
+        // 基本情報・原文・AI生成結果を送信
+        const response = await fetch(saveApiUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization":
+                    `Bearer ${currentUser.access_token}`
+            },
+            body: JSON.stringify({
+                meeting_name: meetingName.value,
+                meeting_date: meetingDate.value,
+                assignee: assignee.value,
+                approver: approver.value,
+                raw_minutes: meetingText.value,
+                ai_minutes: generatedMinutes
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message || "保存に失敗しました"
+            );
+        }
+
+        saveMessage.textContent =
+            "議事録を保存しました";
+    } catch (error) {
+        saveMessage.textContent = error.message;
+    } finally {
+        saveButton.disabled = false;
+    }
+});
 
 // 議事録を項目ごとに表示
 function displayMinutes(minutes) {
