@@ -39,3 +39,15 @@ def save_minutes(minutes_data, registered_by):
     table.put_item(Item=item)
 
     return item
+
+# 議事録一覧をDynamoDBから取得
+def get_minutes():
+    response = table.scan()
+    items = response.get("Items", [])
+
+    # 更新日時が新しい順に並べる
+    return sorted(
+        items,
+        key=lambda item: item.get("updated_at", ""),
+        reverse=True
+    )

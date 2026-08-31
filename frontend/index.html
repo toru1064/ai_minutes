@@ -4,25 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>AI議事録</title>
+    <title>議事録一覧</title>
 
-    <!-- CSSを読み込む -->
     <link rel="stylesheet" href="style.css">
-
-    <!-- JavaScriptを読み込む -->
-    <script type="module" src="script.js"></script>
+    <script type="module" src="list.js"></script>
 </head>
 
 <body>
-    <main class="container">
+    <main class="container list-container">
         <h1>AI議事録</h1>
-        <p class="description">
-            会議内容を入力すると、AIが議事録を作成します。
-        </p>
 
         <!-- ログイン状態 -->
         <section class="auth-area">
-            <p id="user-status">ログイン状態を確認しています...</p>
+            <p id="user-status">
+                ログイン状態を確認しています...
+            </p>
 
             <button type="button" id="login-button" hidden>
                 ログイン
@@ -33,96 +29,43 @@
             </button>
         </section>
 
-        <!-- 会議内容の入力フォーム -->
-        <form id="minutes-form">
-            <!-- 議事録の基本情報 -->
-            <div class="form-grid">
-                <div>
-                    <label for="meeting-name">会議名</label>
-                    <input
-                        type="text"
-                        id="meeting-name"
-                        placeholder="例：開発会議"
-                        required
-                    >
-                </div>
+        <!-- 議事録一覧 -->
+        <section id="minutes-section" hidden>
+            <div class="list-header">
+                <h2>議事録一覧</h2>
 
-                <div>
-                    <label for="meeting-date">会議日</label>
-                    <input
-                        type="date"
-                        id="meeting-date"
-                        required
-                    >
-                </div>
-
-                <div>
-                    <label for="assignee">議事録担当者</label>
-                    <input
-                        type="text"
-                        id="assignee"
-                        placeholder="例：田中"
-                        required
-                    >
-                </div>
-
-                <div>
-                    <label for="approver">承認者</label>
-                    <input
-                        type="text"
-                        id="approver"
-                        placeholder="例：佐藤"
-                        required
-                    >
-                </div>
+                <a
+                    href="register.html"
+                    class="button-link"
+                >
+                    ＋ 議事録を登録
+                </a>
             </div>
 
-            <label for="meeting-text">会議内容</label>
+            <p id="list-message">
+                議事録を読み込んでいます...
+            </p>
 
-            <textarea
-                id="meeting-text"
-                placeholder="会議内容を入力してください"
-                required
-            ></textarea>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>会議名</th>
+                            <th>会議日</th>
+                            <th>担当者</th>
+                            <th>承認者</th>
+                            <th>更新日</th>
+                            <th>状態</th>
+                            <th>原文</th>
+                            <th>AI議事録</th>
+                        </tr>
+                    </thead>
 
-            <button type="submit" id="generate-button">
-                議事録を作成
-            </button>
-        </form>
-
-        <!-- 処理中やエラーのメッセージ -->
-        <p id="status-message"></p>
-
-        <!-- AIが生成した結果 -->
-        <section id="result" hidden>
-            <h2>生成結果</h2>
-
-            <div class="result-item">
-                <h3>会議の要約</h3>
-                <p id="summary"></p>
+                    <!-- JavaScriptで一覧を追加 -->
+                    <tbody id="minutes-table-body"></tbody>
+                </table>
             </div>
-
-            <div class="result-item">
-                <h3>決定事項</h3>
-                <ul id="decisions"></ul>
-            </div>
-
-            <div class="result-item">
-                <h3>TODO</h3>
-                <ul id="todos"></ul>
-            </div>
-
-            <div class="result-item">
-                <h3>次回会議</h3>
-                <p id="next-meeting"></p>
-            </div>
-
-            <!-- 確認した議事録をDynamoDBへ保存 -->
-            <button type="button" id="save-button">
-                議事録を保存
-            </button>
-
-            <p id="save-message"></p>
         </section>
     </main>
 </body>
