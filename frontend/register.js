@@ -28,6 +28,7 @@ const assignee = document.getElementById("assignee");
 const approver = document.getElementById("approver");
 const saveButton = document.getElementById("save-button");
 const saveMessage = document.getElementById("save-message");
+const meetingFile = document.getElementById("meeting-file");
 
 let currentUser = null;
 
@@ -79,6 +80,42 @@ loginButton.addEventListener("click", async () => {
 // ログアウトボタンを押したとき
 logoutButton.addEventListener("click", async () => {
     await logout();
+});
+
+
+// 選択したTXTファイルを会議内容へ読み込む
+meetingFile.addEventListener("change", async () => {
+    const selectedFile = meetingFile.files[0];
+
+    if (!selectedFile) {
+        return;
+    }
+
+    try {
+        const fileData =
+            await selectedFile.arrayBuffer();
+
+        // 最初にUTF-8として読み込む
+        let meetingContent =
+            new TextDecoder("utf-8").decode(fileData);
+
+        // 文字化けがあればShift-JISとして読み直す
+        if (meetingContent.includes("\uFFFD")) {
+            meetingContent =
+                new TextDecoder("shift-jis")
+                    .decode(fileData);
+        }
+
+        meetingText.value = meetingContent;
+
+        statusMessage.textContent =
+            "TXTファイルを読み込みました";
+    } catch (error) {
+        console.error(error);
+
+        statusMessage.textContent =
+            "TXTファイルの読み込みに失敗しました";
+    }
 });
 
 
@@ -188,9 +225,6 @@ saveButton.addEventListener("click", async () => {
 function displayMinutes(minutes) {
     document.getElementById("summary").textContent =
         minutes.summary || "記載なし";
-
-    document.getElementById("next-meeting").textContent =
-        minutes.next_meeting || "記載なし";
 
     // 決定事項を一覧表示
     const decisionsList = document.getElementById("decisions");

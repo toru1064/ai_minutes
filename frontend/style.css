@@ -149,3 +149,28 @@ input:focus {
         grid-template-columns: 1fr;
     }
 }
+
+/* 原文を読みやすく表示 */
+#raw-minutes {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    max-width: 100%;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* 原文の見出しと保存ボタンを横並びにする */
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+/* 見出し横の保存ボタンを小さくする */
+.section-header button {
+    width: auto;
+    margin: 0;
+    padding: 8px 16px;
+}

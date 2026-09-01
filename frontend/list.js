@@ -17,6 +17,10 @@ const logoutButton = document.getElementById("logout-button");
 const minutesSection = document.getElementById("minutes-section");
 const listMessage = document.getElementById("list-message");
 const tableBody = document.getElementById("minutes-table-body");
+const minutesDialog = document.getElementById("minutes-dialog");
+const dialogTitle = document.getElementById("dialog-title");
+const dialogContent = document.getElementById("dialog-content");
+const dialogCloseButton = document.getElementById("dialog-close-button");
 
 let currentUser = null;
 
@@ -123,13 +127,15 @@ function displayMinutesList(minutes) {
         addViewButton(
             row,
             "見る",
-            minutesItem.raw_minutes || "記載なし"
+            minutesItem.minutes_id,
+            "raw-section"
         );
 
         addViewButton(
             row,
             "見る",
-            formatAiMinutes(minutesItem.ai_minutes)
+            minutesItem.minutes_id,
+            "ai-section"
         );
 
         tableBody.appendChild(row);
@@ -145,8 +151,13 @@ function addTextCell(row, value) {
 }
 
 
-// 内容を見るボタンを作成
-function addViewButton(row, label, content) {
+// 詳細ページへ移動するボタンを作成
+function addViewButton(
+    row,
+    label,
+    minutesId,
+    sectionId
+) {
     const cell = document.createElement("td");
     const button = document.createElement("button");
 
@@ -154,11 +165,21 @@ function addViewButton(row, label, content) {
     button.textContent = label;
 
     button.addEventListener("click", () => {
-        alert(content);
+        window.location.href =
+            `detail.html?id=${encodeURIComponent(minutesId)}` +
+            `#${sectionId}`;
     });
 
     cell.appendChild(button);
     row.appendChild(cell);
+}
+
+
+// 詳細ウィンドウを開く
+function openDialog(title, content) {
+    dialogTitle.textContent = title;
+    dialogContent.textContent = content;
+    minutesDialog.showModal();
 }
 
 
@@ -189,9 +210,6 @@ function formatAiMinutes(minutes) {
         "",
         "【TODO】",
         todos || "記載なし",
-        "",
-        "【次回会議】",
-        minutes.next_meeting || "記載なし"
     ].join("\n");
 }
 
@@ -228,6 +246,12 @@ loginButton.addEventListener("click", async () => {
 // ログアウトボタン
 logoutButton.addEventListener("click", async () => {
     await logout();
+});
+
+
+// 詳細ウィンドウを閉じる
+dialogCloseButton.addEventListener("click", () => {
+    minutesDialog.close();
 });
 
 

@@ -1,7 +1,11 @@
 import json
 
 from bedrock_service import generate_minutes
-from dynamodb_service import get_minutes, save_minutes
+from dynamodb_service import (
+    get_minutes,
+    get_minutes_by_id,
+    save_minutes
+)
 
 
 # API Gatewayへ返すレスポンスを作成
@@ -23,6 +27,12 @@ def lambda_handler(event, context):
         body = event
 
     route_key = event.get("routeKey", "")
+    path_parameters = event.get("pathParameters") or {}
+
+    # IDを指定して議事録を1件取得
+    if route_key == "GET /minutes/{minutes_id}":
+        minutes_id = path_parameters.get("minutes_id")
+        return handle_detail(minutes_id)
 
     # GET /minutesは議事録一覧を取得
     if route_key == "GET /minutes":
@@ -34,6 +44,28 @@ def lambda_handler(event, context):
 
     # POST /minutes/generateはAI議事録を生成
     return handle_generate(body)
+
+
+# 議事録を1件取得
+def handle_detail(minutes_id):
+    if not minutes_id:
+        return create_response(
+            400,
+            {"message": "議事録IDが指定されていません"}
+        )
+
+    minutes = get_minutes_by_id(minutes_id)
+
+    if not minutes:
+        return create_response(
+            404,
+            {"message": "議事録が見つかりません"}
+        )
+
+    return create_response(
+        200,
+        {"minutes": minutes}
+    )
 
 
 # DynamoDBから議事録一覧を取得

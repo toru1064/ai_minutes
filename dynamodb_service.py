@@ -51,3 +51,13 @@ def get_minutes():
         key=lambda item: item.get("updated_at", ""),
         reverse=True
     )
+
+# IDを指定して議事録を1件取得
+def get_minutes_by_id(minutes_id):
+    response = table.get_item(
+        Key={
+            "minutes_id": minutes_id
+        }
+    )
+
+    return response.get("Item")

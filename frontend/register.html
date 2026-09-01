@@ -82,6 +82,16 @@
 
             <label for="meeting-text">会議内容</label>
 
+            <label for="meeting-file">
+                TXTファイルから読み込む
+            </label>
+
+            <input
+                type="file"
+                id="meeting-file"
+                accept=".txt,text/plain"
+            >
+
             <textarea
                 id="meeting-text"
                 placeholder="会議内容を入力してください"
@@ -113,11 +123,6 @@
             <div class="result-item">
                 <h3>TODO</h3>
                 <ul id="todos"></ul>
-            </div>
-
-            <div class="result-item">
-                <h3>次回会議</h3>
-                <p id="next-meeting"></p>
             </div>
 
             <!-- 確認した議事録をDynamoDBへ保存 -->
