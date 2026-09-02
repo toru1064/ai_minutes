@@ -20,7 +20,18 @@ const detailContent =
     document.getElementById("detail-content");
 const downloadButton =
     document.getElementById("download-button");
+const detailStatus =
+    document.getElementById("detail-status");
+const statusMessage =
+    document.getElementById("status-message");
+const requestButton =
+    document.getElementById("request-button");
+const approveButton =
+    document.getElementById("approve-button");
+const rejectButton =
+    document.getElementById("reject-button");
 
+let currentUser = null;
 let currentMinutes = null;
 
 
@@ -33,7 +44,7 @@ async function initialize() {
     }
 
     try {
-        const currentUser = await getCurrentUser();
+        currentUser = await getCurrentUser();
 
         if (!currentUser || currentUser.expired) {
             window.location.href = "index.html";
@@ -103,6 +114,73 @@ function displayMinutes(minutes) {
 
     document.getElementById("raw-minutes").textContent =
         minutes.raw_minutes || "記載なし";
+
+    detailStatus.textContent = formatStatus(minutes.status);
+
+    displayStatusButtons(minutes.status);
+}
+
+
+// 状態に応じて操作ボタンを表示
+function displayStatusButtons(status) {
+    requestButton.hidden = true;
+    approveButton.hidden = true;
+    rejectButton.hidden = true;
+
+    if (
+        status === "draft" ||
+        status === "rejected"
+    ) {
+        requestButton.hidden = false;
+    } else if (status === "pending") {
+        approveButton.hidden = false;
+        rejectButton.hidden = false;
+    }
+}
+
+
+// 議事録の状態を更新
+async function updateStatus(newStatus) {
+    statusMessage.textContent =
+        "状態を更新しています...";
+
+    try {
+        const response = await fetch(
+            `${apiUrl}/${encodeURIComponent(minutesId)}/status`,
+            {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization":
+                        `Bearer ${currentUser.access_token}`
+                },
+                body: JSON.stringify({
+                    status: newStatus
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message || "状態の更新に失敗しました"
+            );
+        }
+
+        currentMinutes = data.minutes;
+
+        detailStatus.textContent =
+            formatStatus(currentMinutes.status);
+
+        displayStatusButtons(currentMinutes.status);
+
+        statusMessage.textContent =
+            data.message;
+    } catch (error) {
+        console.error(error);
+        statusMessage.textContent = error.message;
+    }
 }
 
 
@@ -195,6 +273,24 @@ downloadButton.addEventListener("click", () => {
     link.click();
 
     URL.revokeObjectURL(downloadUrl);
+});
+
+
+// 承認申請
+requestButton.addEventListener("click", async () => {
+    await updateStatus("pending");
+});
+
+
+// 承認
+approveButton.addEventListener("click", async () => {
+    await updateStatus("approved");
+});
+
+
+// 差し戻し
+rejectButton.addEventListener("click", async () => {
+    await updateStatus("rejected");
 });
 
 

@@ -30,6 +30,42 @@
             <!-- AI議事録 -->
             <section id="ai-section">
                 <h2>AI議事録</h2>
+                
+                <!-- 承認状態と操作ボタン -->
+                <div class="status-area">
+                    <p>
+                        状態：
+                        <strong id="detail-status"></strong>
+                    </p>
+
+                    <div class="status-buttons">
+                        <button
+                            type="button"
+                            id="request-button"
+                            hidden
+                        >
+                            承認を申請
+                        </button>
+
+                        <button
+                            type="button"
+                            id="approve-button"
+                            hidden
+                        >
+                            承認
+                        </button>
+
+                        <button
+                            type="button"
+                            id="reject-button"
+                            hidden
+                        >
+                            差し戻し
+                        </button>
+                    </div>
+
+                    <p id="status-message"></p>
+                </div>
 
                 <div class="result-card">
                     <h3>会議の要約</h3>

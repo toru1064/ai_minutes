@@ -22,7 +22,6 @@ def generate_minutes(meeting_text):
 ・担当者が行う作業はdecisionsではなくtodosへ入れる
 ・次回会議の日時は、summary、decisions、todosのどこにも含めない
 ・decisionsは1項目につき、1つの決定事項だけを記載する
-・decisionsには、会議で合意したすべての方針を漏れなく抽出する
 ・todosには、作業内容、担当者、期限を入れる
 ・担当者や期限が不明な場合はnullにする
 ・同じ内容をdecisionsとtodosの両方へ入れない

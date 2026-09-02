@@ -4,7 +4,8 @@ from bedrock_service import generate_minutes
 from dynamodb_service import (
     get_minutes,
     get_minutes_by_id,
-    save_minutes
+    save_minutes,
+    update_minutes_status
 )
 
 
@@ -28,6 +29,15 @@ def lambda_handler(event, context):
 
     route_key = event.get("routeKey", "")
     path_parameters = event.get("pathParameters") or {}
+
+    # 議事録の状態を更新
+    if route_key == "PATCH /minutes/{minutes_id}/status":
+        minutes_id = path_parameters.get("minutes_id")
+
+        return handle_update_status(
+            minutes_id,
+            body
+        )
 
     # IDを指定して議事録を1件取得
     if route_key == "GET /minutes/{minutes_id}":
@@ -141,5 +151,49 @@ def handle_save(body, event):
         {
             "message": "議事録を保存しました",
             "minutes": item
+        }
+    )
+
+
+# 議事録の状態を更新
+def handle_update_status(minutes_id, body):
+    if not minutes_id:
+        return create_response(
+            400,
+            {"message": "議事録IDが指定されていません"}
+        )
+
+    current_minutes = get_minutes_by_id(minutes_id)
+
+    if not current_minutes:
+        return create_response(
+            404,
+            {"message": "議事録が見つかりません"}
+        )
+
+    new_status = body.get("status")
+
+    allowed_statuses = [
+        "pending",
+        "approved",
+        "rejected"
+    ]
+
+    if new_status not in allowed_statuses:
+        return create_response(
+            400,
+            {"message": "指定された状態が正しくありません"}
+        )
+
+    updated_minutes = update_minutes_status(
+        minutes_id,
+        new_status
+    )
+
+    return create_response(
+        200,
+        {
+            "message": "状態を更新しました",
+            "minutes": updated_minutes
         }
     )

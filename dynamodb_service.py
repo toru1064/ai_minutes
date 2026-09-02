@@ -40,6 +40,7 @@ def save_minutes(minutes_data, registered_by):
 
     return item
 
+
 # 議事録一覧をDynamoDBから取得
 def get_minutes():
     response = table.scan()
@@ -52,6 +53,7 @@ def get_minutes():
         reverse=True
     )
 
+
 # IDを指定して議事録を1件取得
 def get_minutes_by_id(minutes_id):
     response = table.get_item(
@@ -61,3 +63,30 @@ def get_minutes_by_id(minutes_id):
     )
 
     return response.get("Item")
+
+
+# 議事録の状態を更新
+def update_minutes_status(minutes_id, status):
+    updated_at = datetime.now(
+        timezone.utc
+    ).isoformat()
+
+    response = table.update_item(
+        Key={
+            "minutes_id": minutes_id
+        },
+        UpdateExpression=(
+            "SET #status = :status, "
+            "updated_at = :updated_at"
+        ),
+        ExpressionAttributeNames={
+            "#status": "status"
+        },
+        ExpressionAttributeValues={
+            ":status": status,
+            ":updated_at": updated_at
+        },
+        ReturnValues="ALL_NEW"
+    )
+
+    return response.get("Attributes")
