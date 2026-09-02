@@ -202,7 +202,9 @@ function displayMinutes(minutes) {
         .getElementById("meeting-name")
         .textContent =
             minutes.meeting_name ||
-            "議事録詳細";
+                "議事録詳細";
+
+    displayProject(minutes);
 
     document
         .getElementById("summary")
@@ -235,6 +237,34 @@ function displayMinutes(minutes) {
     displayStatusButtons(
         minutes.status
     );
+}
+
+
+// 所属プロジェクトを表示
+function displayProject(minutes) {
+    const projectElement =
+        document.getElementById("meeting-project");
+
+    projectElement.innerHTML = "";
+
+    if (!minutes.project_id) {
+        projectElement.textContent =
+            "プロジェクト：未設定";
+        return;
+    }
+
+    const label = document.createTextNode(
+        "プロジェクト："
+    );
+    const link = document.createElement("a");
+
+    link.href =
+        `project_detail.html?id=${encodeURIComponent(minutes.project_id)}`;
+    link.textContent =
+        minutes.project_name || "プロジェクト";
+
+    projectElement.appendChild(label);
+    projectElement.appendChild(link);
 }
 
 

@@ -56,6 +56,12 @@ def save_minutes(minutes_data, registered_by):
         # 一覧画面に表示する連番
         "minutes_number": str(minutes_number),
 
+        "entity_type": "minutes",
+
+        # 議事録が所属するプロジェクト
+        "project_id": minutes_data["project_id"],
+        "project_name": minutes_data["project_name"],
+
         "meeting_name": minutes_data["meeting_name"],
         "meeting_date": minutes_data["meeting_date"],
         "assignee": minutes_data["assignee"],
@@ -86,7 +92,12 @@ def get_minutes():
     minutes_items = [
         item
         for item in items
-        if item.get("minutes_id") != COUNTER_ID
+        if (
+            item.get("minutes_id") != COUNTER_ID
+            and not item.get("minutes_id", "").startswith("SYSTEM#")
+            and not item.get("minutes_id", "").startswith("PROJECT#")
+            and item.get("entity_type") != "project"
+        )
     ]
 
     # 更新日時が新しい順に並べる

@@ -117,6 +117,7 @@ function applyFilters() {
 
             const searchableText = [
                 minutesItem.minutes_id,
+                minutesItem.project_name,
                 minutesItem.meeting_name,
                 minutesItem.meeting_date,
                 minutesItem.assignee,
@@ -166,6 +167,12 @@ function displayMinutesList(minutes) {
             minutesItem.minutes_id
         );
 
+        addProjectCell(
+            row,
+            minutesItem.project_name,
+            minutesItem.project_id
+        );
+
         addTextCell(
             row,
             minutesItem.meeting_name,
@@ -213,6 +220,27 @@ function displayMinutesList(minutes) {
 
         tableBody.appendChild(row);
     }
+}
+
+
+// 所属プロジェクトへのリンクを作成
+function addProjectCell(row, projectName, projectId) {
+    const cell = document.createElement("td");
+
+    if (!projectId) {
+        cell.textContent = "未設定";
+        row.appendChild(cell);
+        return;
+    }
+
+    const link = document.createElement("a");
+    link.textContent = projectName || "プロジェクト";
+    link.href =
+        `project_detail.html?id=${encodeURIComponent(projectId)}`;
+    link.classList.add("project-link");
+
+    cell.appendChild(link);
+    row.appendChild(cell);
 }
 
 

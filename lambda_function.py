@@ -8,6 +8,11 @@ from dynamodb_service import (
     update_ai_minutes,
     update_minutes_status
 )
+from project_service import (
+    get_project_by_id,
+    get_projects,
+    save_project
+)
 
 
 # API Gatewayへ返すレスポンスを作成
@@ -30,6 +35,19 @@ def lambda_handler(event, context):
 
     route_key = event.get("routeKey", "")
     path_parameters = event.get("pathParameters") or {}
+
+    # プロジェクトを1件取得
+    if route_key == "GET /projects/{project_id}":
+        project_id = path_parameters.get("project_id")
+        return handle_project_detail(project_id)
+
+    # プロジェクト一覧を取得
+    if route_key == "GET /projects":
+        return handle_project_list()
+
+    # プロジェクトを登録
+    if route_key == "POST /projects":
+        return handle_project_save(body, event)
 
     # 保存済みの原文からAI議事録を生成
     if route_key == "POST /minutes/{minutes_id}/generate":
@@ -172,6 +190,7 @@ def handle_generate_saved(minutes_id):
 # DynamoDBへ議事録を保存
 def handle_save(body, event):
     required_fields = [
+        "project_id",
         "meeting_name",
         "meeting_date",
         "assignee",
@@ -209,6 +228,17 @@ def handle_save(body, event):
         or claims.get("sub")
     )
 
+    project = get_project_by_id(body["project_id"])
+
+    if not project:
+        return create_response(
+            400,
+            {"message": "指定されたプロジェクトが見つかりません"}
+        )
+
+    # 表示用のプロジェクト名はサーバー側で設定する
+    body["project_name"] = project["project_name"]
+
     item = save_minutes(body, registered_by)
 
     return create_response(
@@ -216,6 +246,102 @@ def handle_save(body, event):
         {
             "message": "議事録を保存しました",
             "minutes": item
+        }
+    )
+
+
+# プロジェクト一覧を取得
+def handle_project_list():
+    return create_response(
+        200,
+        {"projects": get_projects()}
+    )
+
+
+# プロジェクトを1件取得
+def handle_project_detail(project_id):
+    project = get_project_by_id(project_id)
+
+    if not project:
+        return create_response(
+            404,
+            {"message": "プロジェクトが見つかりません"}
+        )
+
+    related_minutes = [
+        item
+        for item in get_minutes()
+        if item.get("project_id") == project_id
+    ]
+
+    return create_response(
+        200,
+        {
+            "project": project,
+            "minutes": related_minutes
+        }
+    )
+
+
+# プロジェクトを登録
+def handle_project_save(body, event):
+    required_fields = [
+        "project_name",
+        "manager",
+        "start_date"
+    ]
+
+    missing_fields = [
+        field
+        for field in required_fields
+        if not body.get(field)
+    ]
+
+    if missing_fields:
+        return create_response(
+            400,
+            {
+                "message": "必須項目が不足しています",
+                "fields": missing_fields
+            }
+        )
+
+    allowed_statuses = [
+        "active",
+        "on_hold",
+        "completed"
+    ]
+
+    if body.get("status", "active") not in allowed_statuses:
+        return create_response(
+            400,
+            {"message": "プロジェクトの状態が正しくありません"}
+        )
+
+    end_date = body.get("end_date")
+
+    if end_date and end_date < body["start_date"]:
+        return create_response(
+            400,
+            {"message": "終了予定日は開始日以降にしてください"}
+        )
+
+    claims = (
+        event
+        .get("requestContext", {})
+        .get("authorizer", {})
+        .get("jwt", {})
+        .get("claims", {})
+    )
+
+    created_by = claims.get("email") or claims.get("sub")
+    project = save_project(body, created_by)
+
+    return create_response(
+        201,
+        {
+            "message": "プロジェクトを登録しました",
+            "project": project
         }
     )
 

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プロジェクト一覧</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="module" src="projects.js"></script>
+</head>
+<body class="list-page project-page">
+    <header class="app-header">
+        <div class="app-title">AIプロジェクト管理</div>
+        <div class="header-auth">
+            <span id="user-status">ログイン状態を確認しています...</span>
+            <button type="button" id="login-button" hidden>ログイン</button>
+            <button type="button" id="logout-button" hidden>ログアウト</button>
+        </div>
+    </header>
+
+    <div class="app-layout">
+        <aside class="sidebar">
+            <nav class="sidebar-menu">
+                <a href="projects.html" class="active">プロジェクト</a>
+                <a href="index.html">議事録一覧</a>
+                <a href="register.html">議事録を登録</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <section id="projects-section" hidden>
+                <div class="page-heading">
+                    <div>
+                        <h1>プロジェクト一覧</h1>
+                        <p>プロジェクトごとに議事録や今後のチケットを管理します。</p>
+                    </div>
+                    <a href="project_register.html" class="primary-link">＋ プロジェクトを登録</a>
+                </div>
+
+                <section class="filter-panel">
+                    <input type="search" id="project-search" placeholder="プロジェクト名・責任者を検索">
+                    <div class="status-tabs">
+                        <button type="button" class="project-status-tab active" data-status="all">すべて</button>
+                        <button type="button" class="project-status-tab" data-status="active">進行中</button>
+                        <button type="button" class="project-status-tab" data-status="on_hold">保留</button>
+                        <button type="button" class="project-status-tab" data-status="completed">完了</button>
+                    </div>
+                </section>
+
+                <p id="list-message">プロジェクトを読み込んでいます...</p>
+
+                <div class="table-wrapper">
+                    <table class="minutes-table project-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>プロジェクト名</th>
+                                <th>責任者</th>
+                                <th>開始日</th>
+                                <th>終了予定日</th>
+                                <th>状態</th>
+                                <th>詳細</th>
+                            </tr>
+                        </thead>
+                        <tbody id="projects-table-body"></tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

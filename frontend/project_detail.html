@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プロジェクト詳細</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="module" src="project_detail.js"></script>
+</head>
+<body class="detail-page project-page">
+    <header class="app-header">
+        <div class="app-title">AIプロジェクト管理</div>
+        <div class="header-auth">
+            <span id="user-status">ログイン状態を確認しています...</span>
+            <button type="button" id="logout-button">ログアウト</button>
+        </div>
+    </header>
+
+    <div class="app-layout">
+        <aside class="sidebar">
+            <nav class="sidebar-menu">
+                <a href="projects.html" class="active">プロジェクト</a>
+                <a href="index.html">議事録一覧</a>
+                <a href="register.html">議事録を登録</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="page-heading">
+                <div>
+                    <h1 id="project-name">プロジェクト詳細</h1>
+                    <p id="project-number"></p>
+                </div>
+                <a id="minutes-register-link" href="register.html" class="primary-link">＋ このプロジェクトに議事録を登録</a>
+            </div>
+
+            <p id="detail-message">プロジェクトを読み込んでいます...</p>
+
+            <div id="detail-content" hidden>
+                <section class="detail-panel project-summary-panel">
+                    <div class="project-summary-grid">
+                        <div><span>状態</span><strong id="project-status"></strong></div>
+                        <div><span>責任者</span><strong id="project-manager"></strong></div>
+                        <div><span>開始日</span><strong id="project-start-date"></strong></div>
+                        <div><span>終了予定日</span><strong id="project-end-date"></strong></div>
+                    </div>
+
+                    <div class="project-description-block">
+                        <h2>プロジェクト概要</h2>
+                        <p id="project-description"></p>
+                    </div>
+                </section>
+
+                <section class="related-minutes-panel">
+                    <div class="panel-heading">
+                        <h2>関連する議事録</h2>
+                        <p>このプロジェクトに登録されている議事録です。</p>
+                    </div>
+
+                    <p id="minutes-message"></p>
+                    <div class="table-wrapper">
+                        <table class="minutes-table related-minutes-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>会議名</th>
+                                    <th>会議日</th>
+                                    <th>担当者</th>
+                                    <th>状態</th>
+                                    <th>詳細</th>
+                                </tr>
+                            </thead>
+                            <tbody id="minutes-table-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

@@ -10,6 +10,9 @@ import {
 const saveApiUrl =
     "https://ba2lg9ckm9.execute-api.ap-northeast-1.amazonaws.com/minutes";
 
+const projectsApiUrl =
+    "https://ba2lg9ckm9.execute-api.ap-northeast-1.amazonaws.com/projects";
+
 
 // HTMLの部品を取得
 const form =
@@ -48,6 +51,9 @@ const approver =
 const meetingFile =
     document.getElementById("meeting-file");
 
+const projectSelect =
+    document.getElementById("project-id");
+
 
 let currentUser = null;
 
@@ -70,6 +76,8 @@ async function initializeAuth() {
             loginButton.hidden = true;
             logoutButton.hidden = false;
             form.hidden = false;
+
+            await loadProjects();
         } else {
             userStatus.textContent =
                 "ログインしていません";
@@ -87,6 +95,53 @@ async function initializeAuth() {
         loginButton.hidden = false;
         logoutButton.hidden = true;
         form.hidden = true;
+    }
+}
+
+
+// 選択できるプロジェクト一覧を取得
+async function loadProjects() {
+    const response = await fetch(
+        projectsApiUrl,
+        {
+            headers: {
+                "Authorization":
+                    `Bearer ${currentUser.access_token}`
+            }
+        }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(
+            data.message ||
+            "プロジェクトの取得に失敗しました"
+        );
+    }
+
+    const projects = data.projects || [];
+
+    for (const project of projects) {
+        const option = document.createElement("option");
+        option.value = project.project_id;
+        option.textContent =
+            `#${project.project_number} ${project.project_name}`;
+        projectSelect.appendChild(option);
+    }
+
+    const selectedProjectId =
+        new URLSearchParams(window.location.search)
+            .get("project_id");
+
+    if (selectedProjectId) {
+        projectSelect.value = selectedProjectId;
+    }
+
+    if (projects.length === 0) {
+        statusMessage.textContent =
+            "先にプロジェクトを登録してください";
+        registerButton.disabled = true;
     }
 }
 
@@ -190,6 +245,9 @@ form.addEventListener(
                         },
 
                         body: JSON.stringify({
+                            project_id:
+                                projectSelect.value,
+
                             meeting_name:
                                 meetingName.value,
 

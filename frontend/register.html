@@ -17,7 +17,7 @@
     <!-- 上部ヘッダー -->
     <header class="app-header">
         <div class="app-title">
-            AI議事録管理
+            AIプロジェクト管理
         </div>
 
         <div class="header-auth">
@@ -47,6 +47,10 @@
         <!-- 左メニュー -->
         <aside class="sidebar">
             <nav class="sidebar-menu">
+                <a href="projects.html">
+                    プロジェクト
+                </a>
+
                 <a href="index.html">
                     議事録一覧
                 </a>
@@ -86,6 +90,24 @@
                     </div>
 
                     <div class="form-grid">
+                        <div class="form-field full-width-field">
+                            <label for="project-id">
+                                プロジェクト
+                            </label>
+
+                            <select id="project-id" required>
+                                <option value="">
+                                    プロジェクトを選択してください
+                                </option>
+                            </select>
+
+                            <small class="field-help">
+                                プロジェクトがない場合は、先に
+                                <a href="project_register.html">プロジェクトを登録</a>
+                                してください。
+                            </small>
+                        </div>
+
                         <div class="form-field">
                             <label for="meeting-name">
                                 会議名
