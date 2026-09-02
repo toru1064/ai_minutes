@@ -5,6 +5,7 @@ from dynamodb_service import (
     get_minutes,
     get_minutes_by_id,
     save_minutes,
+    update_ai_minutes,
     update_minutes_status
 )
 
@@ -30,6 +31,11 @@ def lambda_handler(event, context):
     route_key = event.get("routeKey", "")
     path_parameters = event.get("pathParameters") or {}
 
+    # 保存済みの原文からAI議事録を生成
+    if route_key == "POST /minutes/{minutes_id}/generate":
+        minutes_id = path_parameters.get("minutes_id")
+        return handle_generate_saved(minutes_id)
+
     # 議事録の状態を更新
     if route_key == "PATCH /minutes/{minutes_id}/status":
         minutes_id = path_parameters.get("minutes_id")
@@ -52,8 +58,14 @@ def lambda_handler(event, context):
     if route_key == "POST /minutes":
         return handle_save(body, event)
 
-    # POST /minutes/generateはAI議事録を生成
-    return handle_generate(body)
+    # 従来の動作確認用AI生成API
+    if route_key == "POST /minutes/generate":
+        return handle_generate(body)
+
+    return create_response(
+        404,
+        {"message": "APIルートが見つかりません"}
+    )
 
 
 # 議事録を1件取得
@@ -103,6 +115,60 @@ def handle_generate(body):
     return create_response(200, minutes)
 
 
+# 保存済みの原文からAI議事録を生成して保存
+def handle_generate_saved(minutes_id):
+    if not minutes_id:
+        return create_response(
+            400,
+            {"message": "議事録IDが指定されていません"}
+        )
+
+    current_minutes = get_minutes_by_id(minutes_id)
+
+    if not current_minutes:
+        return create_response(
+            404,
+            {"message": "議事録が見つかりません"}
+        )
+
+    # すでに生成済みならBedrockを再実行しない
+    if current_minutes.get("ai_minutes"):
+        return create_response(
+            200,
+            {
+                "message": "保存済みのAI議事録を取得しました",
+                "minutes": current_minutes
+            }
+        )
+
+    meeting_text = (
+        current_minutes
+        .get("raw_minutes", "")
+        .strip()
+    )
+
+    if not meeting_text:
+        return create_response(
+            400,
+            {"message": "会議内容の原文がありません"}
+        )
+
+    ai_minutes = generate_minutes(meeting_text)
+
+    updated_minutes = update_ai_minutes(
+        minutes_id,
+        ai_minutes
+    )
+
+    return create_response(
+        200,
+        {
+            "message": "AI議事録を作成しました",
+            "minutes": updated_minutes
+        }
+    )
+
+
 # DynamoDBへ議事録を保存
 def handle_save(body, event):
     required_fields = [
@@ -110,8 +176,7 @@ def handle_save(body, event):
         "meeting_date",
         "assignee",
         "approver",
-        "raw_minutes",
-        "ai_minutes"
+        "raw_minutes"
     ]
 
     # 必須項目が入力されているか確認
@@ -172,6 +237,16 @@ def handle_update_status(minutes_id, body):
         )
 
     new_status = body.get("status")
+
+    # AI議事録の作成前は承認申請できない
+    if (
+        new_status == "pending"
+        and not current_minutes.get("ai_minutes")
+    ):
+        return create_response(
+            400,
+            {"message": "先にAI議事録を作成してください"}
+        )
 
     allowed_statuses = [
         "pending",

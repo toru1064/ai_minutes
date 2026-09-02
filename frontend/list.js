@@ -11,18 +11,26 @@ const listApiUrl =
     "https://ba2lg9ckm9.execute-api.ap-northeast-1.amazonaws.com/minutes";
 
 // HTMLの部品を取得
-const userStatus = document.getElementById("user-status");
-const loginButton = document.getElementById("login-button");
-const logoutButton = document.getElementById("logout-button");
-const minutesSection = document.getElementById("minutes-section");
-const listMessage = document.getElementById("list-message");
-const tableBody = document.getElementById("minutes-table-body");
-const minutesDialog = document.getElementById("minutes-dialog");
-const dialogTitle = document.getElementById("dialog-title");
-const dialogContent = document.getElementById("dialog-content");
-const dialogCloseButton = document.getElementById("dialog-close-button");
+const userStatus =
+    document.getElementById("user-status");
+const loginButton =
+    document.getElementById("login-button");
+const logoutButton =
+    document.getElementById("logout-button");
+const minutesSection =
+    document.getElementById("minutes-section");
+const listMessage =
+    document.getElementById("list-message");
+const tableBody =
+    document.getElementById("minutes-table-body");
+const searchInput =
+    document.getElementById("minutes-search");
+const statusTabs =
+    document.querySelectorAll(".status-tab");
 
 let currentUser = null;
+let allMinutes = [];
+let selectedStatus = "all";
 
 
 // 画面を開いたときの処理
@@ -33,7 +41,8 @@ async function initialize() {
         currentUser = await getCurrentUser();
 
         if (!currentUser || currentUser.expired) {
-            userStatus.textContent = "ログインしていません";
+            userStatus.textContent =
+                "ログインしていません";
 
             loginButton.hidden = false;
             logoutButton.hidden = true;
@@ -80,14 +89,52 @@ async function loadMinutes() {
 
         if (!response.ok) {
             throw new Error(
-                data.message || "一覧の取得に失敗しました"
+                data.message ||
+                "一覧の取得に失敗しました"
             );
         }
 
-        displayMinutesList(data.minutes || []);
+        allMinutes = data.minutes || [];
+
+        applyFilters();
     } catch (error) {
+        console.error(error);
         listMessage.textContent = error.message;
     }
+}
+
+
+// 検索条件と状態で絞り込む
+function applyFilters() {
+    const keyword =
+        searchInput.value.trim().toLowerCase();
+
+    const filteredMinutes = allMinutes.filter(
+        minutesItem => {
+            const matchesStatus =
+                selectedStatus === "all" ||
+                minutesItem.status === selectedStatus;
+
+            const searchableText = [
+                minutesItem.minutes_id,
+                minutesItem.meeting_name,
+                minutesItem.meeting_date,
+                minutesItem.assignee,
+                minutesItem.approver
+            ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+
+            const matchesKeyword =
+                !keyword ||
+                searchableText.includes(keyword);
+
+            return matchesStatus && matchesKeyword;
+        }
+    );
+
+    displayMinutesList(filteredMinutes);
 }
 
 
@@ -95,45 +142,71 @@ async function loadMinutes() {
 function displayMinutesList(minutes) {
     tableBody.innerHTML = "";
 
-    if (minutes.length === 0) {
+    if (allMinutes.length === 0) {
         listMessage.textContent =
             "登録された議事録はありません";
         return;
     }
 
+    if (minutes.length === 0) {
+        listMessage.textContent =
+            "条件に一致する議事録はありません";
+        return;
+    }
+
     listMessage.textContent =
-        `${minutes.length}件の議事録`;
+        `${minutes.length}件を表示`;
 
     for (const minutesItem of minutes) {
         const row = document.createElement("tr");
 
+        addNumberCell(
+            row,
+            minutesItem.minutes_number,
+            minutesItem.minutes_id
+        );
+
         addTextCell(
             row,
-            minutesItem.minutes_id?.slice(0, 8)
+            minutesItem.meeting_name,
+            "meeting-name-cell"
         );
-        addTextCell(row, minutesItem.meeting_name);
-        addTextCell(row, minutesItem.meeting_date);
-        addTextCell(row, minutesItem.assignee);
-        addTextCell(row, minutesItem.approver);
+
+        addTextCell(
+            row,
+            minutesItem.meeting_date
+        );
+
+        addTextCell(
+            row,
+            minutesItem.assignee
+        );
+
+        addTextCell(
+            row,
+            minutesItem.approver
+        );
+
         addTextCell(
             row,
             formatDate(minutesItem.updated_at)
         );
-        addTextCell(
+
+        addStatusCell(
             row,
-            formatStatus(minutesItem.status)
+            minutesItem.status
         );
 
         addViewButton(
             row,
-            "見る",
+            "表示",
             minutesItem.minutes_id,
             "raw-section"
         );
 
         addViewButton(
             row,
-            "見る",
+            "表示",
             minutesItem.minutes_id,
             "ai-section"
         );
@@ -143,10 +216,62 @@ function displayMinutesList(minutes) {
 }
 
 
-// 文字を表示する列を作成
-function addTextCell(row, value) {
+// 議事録番号のリンクを作成
+function addNumberCell(
+    row,
+    minutesNumber,
+    minutesId
+) {
     const cell = document.createElement("td");
+    const link = document.createElement("a");
+
+    link.textContent =
+        minutesNumber
+            ? `#${minutesNumber}`
+            : "-";
+
+    link.href =
+        `detail.html?id=${encodeURIComponent(minutesId)}` +
+        "#ai-section";
+
+    link.classList.add(
+        "minutes-number-link"
+    );
+
+    cell.appendChild(link);
+    row.appendChild(cell);
+}
+
+
+// 文字を表示する列を作成
+function addTextCell(row, value, className) {
+    const cell = document.createElement("td");
+
     cell.textContent = value || "-";
+
+    if (className) {
+        cell.classList.add(className);
+    }
+
+    row.appendChild(cell);
+}
+
+
+// 状態を色付きで表示
+function addStatusCell(row, status) {
+    const cell = document.createElement("td");
+    const statusBadge =
+        document.createElement("span");
+
+    statusBadge.textContent =
+        formatStatus(status);
+
+    statusBadge.classList.add(
+        "status-badge",
+        `status-${status || "unknown"}`
+    );
+
+    cell.appendChild(statusBadge);
     row.appendChild(cell);
 }
 
@@ -163,6 +288,7 @@ function addViewButton(
 
     button.type = "button";
     button.textContent = label;
+    button.classList.add("table-action");
 
     button.addEventListener("click", () => {
         window.location.href =
@@ -172,45 +298,6 @@ function addViewButton(
 
     cell.appendChild(button);
     row.appendChild(cell);
-}
-
-
-// 詳細ウィンドウを開く
-function openDialog(title, content) {
-    dialogTitle.textContent = title;
-    dialogContent.textContent = content;
-    minutesDialog.showModal();
-}
-
-
-// AI議事録を読みやすい文章に変換
-function formatAiMinutes(minutes) {
-    if (!minutes) {
-        return "記載なし";
-    }
-
-    const decisions = (minutes.decisions || [])
-        .map(decision => `・${decision}`)
-        .join("\n");
-
-    const todos = (minutes.todos || [])
-        .map(todo =>
-            `・${todo.task}` +
-            `（担当：${todo.assignee || "未定"}、` +
-            `期限：${todo.deadline || "未定"}）`
-        )
-        .join("\n");
-
-    return [
-        "【会議の要約】",
-        minutes.summary || "記載なし",
-        "",
-        "【決定事項】",
-        decisions || "記載なし",
-        "",
-        "【TODO】",
-        todos || "記載なし",
-    ].join("\n");
 }
 
 
@@ -233,7 +320,38 @@ function formatDate(value) {
         return "-";
     }
 
-    return new Date(value).toLocaleString("ja-JP");
+    return new Date(value).toLocaleString(
+        "ja-JP",
+        {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit"
+        }
+    );
+}
+
+
+// 検索欄へ入力したとき
+searchInput.addEventListener("input", () => {
+    applyFilters();
+});
+
+
+// 状態タブを押したとき
+for (const tab of statusTabs) {
+    tab.addEventListener("click", () => {
+        selectedStatus = tab.dataset.status;
+
+        for (const otherTab of statusTabs) {
+            otherTab.classList.remove("active");
+        }
+
+        tab.classList.add("active");
+
+        applyFilters();
+    });
 }
 
 
@@ -246,12 +364,6 @@ loginButton.addEventListener("click", async () => {
 // ログアウトボタン
 logoutButton.addEventListener("click", async () => {
     await logout();
-});
-
-
-// 詳細ウィンドウを閉じる
-dialogCloseButton.addEventListener("click", () => {
-    minutesDialog.close();
 });
 
 

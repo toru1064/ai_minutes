@@ -2,7 +2,10 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>議事録一覧</title>
 
@@ -10,83 +13,152 @@
     <script type="module" src="list.js"></script>
 </head>
 
-<body>
-    <main class="container list-container">
-        <h1>AI議事録</h1>
+<body class="list-page">
+    <!-- 上部ヘッダー -->
+    <header class="app-header">
+        <div class="app-title">
+            AI議事録管理
+        </div>
 
-        <!-- ログイン状態 -->
-        <section class="auth-area">
-            <p id="user-status">
+        <div class="header-auth">
+            <span id="user-status">
                 ログイン状態を確認しています...
-            </p>
+            </span>
 
-            <button type="button" id="login-button" hidden>
+            <button
+                type="button"
+                id="login-button"
+                hidden
+            >
                 ログイン
             </button>
 
-            <button type="button" id="logout-button" hidden>
+            <button
+                type="button"
+                id="logout-button"
+                hidden
+            >
                 ログアウト
             </button>
-        </section>
+        </div>
+    </header>
 
-        <!-- 議事録一覧 -->
-        <section id="minutes-section" hidden>
-            <div class="list-header">
-                <h2>議事録一覧</h2>
-
+    <div class="app-layout">
+        <!-- 左メニュー -->
+        <aside class="sidebar">
+            <nav class="sidebar-menu">
                 <a
-                    href="register.html"
-                    class="button-link"
+                    href="index.html"
+                    class="active"
                 >
-                    ＋ 議事録を登録
+                    議事録一覧
                 </a>
-            </div>
 
-            <p id="list-message">
-                議事録を読み込んでいます...
-            </p>
+                <a href="register.html">
+                    議事録を登録
+                </a>
+            </nav>
+        </aside>
 
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>会議名</th>
-                            <th>会議日</th>
-                            <th>担当者</th>
-                            <th>承認者</th>
-                            <th>更新日</th>
-                            <th>状態</th>
-                            <th>原文</th>
-                            <th>AI議事録</th>
-                        </tr>
-                    </thead>
+        <!-- メイン画面 -->
+        <main class="main-content">
+            <section id="minutes-section" hidden>
+                <div class="page-heading">
+                    <div>
+                        <h1>議事録一覧</h1>
 
-                    <!-- JavaScriptで一覧を追加 -->
-                    <tbody id="minutes-table-body"></tbody>
-                </table>
-            </div>
-        </section>
-        
-        <!-- 議事録の詳細ウィンドウ -->
-        <dialog id="minutes-dialog">
-            <div class="dialog-header">
-                <h2 id="dialog-title">議事録の詳細</h2>
+                        <p>
+                            登録された議事録を確認・管理します。
+                        </p>
+                    </div>
 
-                <button
-                    type="button"
-                    id="dialog-close-button"
-                >
-                    ×
-                </button>
-            </div>
+                    <a
+                        href="register.html"
+                        class="primary-link"
+                    >
+                        ＋ 議事録を登録
+                    </a>
+                </div>
 
-            <div
-                id="dialog-content"
-                class="dialog-content"
-            ></div>
-        </dialog>
-        
-    </main>
+                <!-- 検索と状態の絞り込み -->
+                <section class="filter-panel">
+                    <input
+                        type="search"
+                        id="minutes-search"
+                        placeholder="会議名・担当者・承認者を検索"
+                    >
+
+                    <div class="status-tabs">
+                        <button
+                            type="button"
+                            class="status-tab active"
+                            data-status="all"
+                        >
+                            すべて
+                        </button>
+
+                        <button
+                            type="button"
+                            class="status-tab"
+                            data-status="draft"
+                        >
+                            下書き
+                        </button>
+
+                        <button
+                            type="button"
+                            class="status-tab"
+                            data-status="pending"
+                        >
+                            承認待ち
+                        </button>
+
+                        <button
+                            type="button"
+                            class="status-tab"
+                            data-status="approved"
+                        >
+                            承認済み
+                        </button>
+
+                        <button
+                            type="button"
+                            class="status-tab"
+                            data-status="rejected"
+                        >
+                            差し戻し
+                        </button>
+                    </div>
+                </section>
+
+                <p id="list-message">
+                    議事録を読み込んでいます...
+                </p>
+
+                <!-- 議事録一覧 -->
+                <div class="table-wrapper">
+                    <table class="minutes-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>会議名</th>
+                                <th>会議日</th>
+                                <th>担当者</th>
+                                <th>承認者</th>
+                                <th>更新日</th>
+                                <th>状態</th>
+                                <th>原文</th>
+                                <th>AI議事録</th>
+                            </tr>
+                        </thead>
+
+                        <tbody
+                            id="minutes-table-body"
+                        ></tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
 </body>
 </html>

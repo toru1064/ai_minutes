@@ -13,30 +13,72 @@
     <script type="module" src="detail.js"></script>
 </head>
 
-<body>
-    <main class="container detail-container">
-        <a href="index.html">
-            ← 議事録一覧へ戻る
-        </a>
+<body class="detail-page">
+    <!-- 上部ヘッダー -->
+    <header class="app-header">
+        <div class="app-title">
+            AI議事録管理
+        </div>
 
-        <h1 id="meeting-name">議事録詳細</h1>
+        <div class="header-auth">
+            <span id="detail-user-status">
+                ログイン状態を確認しています...
+            </span>
 
-        <p id="detail-message">
-            議事録を読み込んでいます...
-        </p>
+            <button
+                type="button"
+                id="detail-logout-button"
+            >
+                ログアウト
+            </button>
+        </div>
+    </header>
 
-        <div id="detail-content" hidden>
+    <div class="app-layout">
+        <!-- 左メニュー -->
+        <aside class="sidebar">
+            <nav class="sidebar-menu">
+                <a
+                    href="index.html"
+                    class="active"
+                >
+                    議事録一覧
+                </a>
 
-            <!-- AI議事録 -->
-            <section id="ai-section">
-                <h2>AI議事録</h2>
-                
-                <!-- 承認状態と操作ボタン -->
-                <div class="status-area">
-                    <p>
-                        状態：
-                        <strong id="detail-status"></strong>
-                    </p>
+                <a href="register.html">
+                    議事録を登録
+                </a>
+            </nav>
+        </aside>
+
+        <!-- メイン画面 -->
+        <main class="main-content">
+            <div class="page-heading detail-heading">
+                <div>
+                    <h1 id="meeting-name">
+                        議事録詳細
+                    </h1>
+                </div>
+            </div>
+
+            <p id="detail-message">
+                議事録を読み込んでいます...
+            </p>
+
+            <div id="detail-content" hidden>
+                <!-- 承認状態と操作 -->
+                <section
+                    id="approval-area"
+                    class="workflow-bar"
+                >
+                    <div class="workflow-status">
+                        <span>現在の状態</span>
+
+                        <strong
+                            id="detail-status"
+                            class="status-badge"
+                        ></strong>
+                    </div>
 
                     <div class="status-buttons">
                         <button
@@ -65,41 +107,63 @@
                     </div>
 
                     <p id="status-message"></p>
-                </div>
+                </section>
 
-                <div class="result-card">
-                    <h3>会議の要約</h3>
-                    <p id="summary"></p>
-                </div>
+                <!-- AI議事録 -->
+                <section
+                    id="ai-section"
+                    class="detail-panel"
+                >
+                    <div class="panel-heading">
+                        <h2>AI議事録</h2>
 
-                <div class="result-card">
-                    <h3>決定事項</h3>
-                    <ul id="decisions"></ul>
-                </div>
+                        <p>
+                            AIが会議内容を整理した結果です。
+                        </p>
+                    </div>
 
-                <div class="result-card">
-                    <h3>TODO</h3>
-                    <ul id="todos"></ul>
-                </div>
+                    <div class="result-card">
+                        <h3>会議の要約</h3>
+                        <p id="summary"></p>
+                    </div>
 
-            </section>
+                    <div class="result-card">
+                        <h3>決定事項</h3>
+                        <ul id="decisions"></ul>
+                    </div>
 
-            <!-- 会議内容の原文 -->
-            <section id="raw-section">
-                <div class="section-header">
-                    <h2>会議内容（原文）</h2>
+                    <div class="result-card">
+                        <h3>TODO</h3>
+                        <ul id="todos"></ul>
+                    </div>
+                </section>
 
-                    <button
-                        type="button"
-                        id="download-button"
-                    >
-                        TXTで保存
-                    </button>
-                </div>
+                <!-- 会議内容の原文 -->
+                <section
+                    id="raw-section"
+                    class="detail-panel"
+                >
+                    <div class="panel-heading detail-panel-heading">
+                        <div>
+                            <h2>会議内容（原文）</h2>
 
-                <pre id="raw-minutes"></pre>
-            </section>
-        </div>
-    </main>
+                            <p>
+                                登録時に入力された会議内容です。
+                            </p>
+                        </div>
+
+                        <button
+                            type="button"
+                            id="download-button"
+                        >
+                            TXTで保存
+                        </button>
+                    </div>
+
+                    <pre id="raw-minutes"></pre>
+                </section>
+            </div>
+        </main>
+    </div>
 </body>
 </html>

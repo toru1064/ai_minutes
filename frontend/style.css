@@ -174,3 +174,761 @@ input:focus {
     margin: 0;
     padding: 8px 16px;
 }
+
+
+/* ========================================
+   議事録一覧画面
+======================================== */
+
+/* 一覧画面全体 */
+.list-page {
+    min-height: 100vh;
+    background-color: #eef2f6;
+    color: #263238;
+}
+
+/* 上部ヘッダー */
+.app-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 58px;
+    padding: 0 24px;
+    box-sizing: border-box;
+    background-color: #3f739b;
+    border-top: 4px solid #294d68;
+    color: #ffffff;
+}
+
+.app-title {
+    font-size: 21px;
+    font-weight: bold;
+}
+
+.header-auth {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+}
+
+/* ヘッダー内のボタン */
+.header-auth button {
+    width: auto;
+    margin: 0;
+    padding: 7px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-radius: 4px;
+    background-color: transparent;
+    font-size: 13px;
+}
+
+.header-auth button:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* 左メニューとメイン画面 */
+.app-layout {
+    display: flex;
+    min-height: calc(100vh - 58px);
+}
+
+/* 左メニュー */
+.sidebar {
+    width: 210px;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    background-color: #ffffff;
+    border-right: 1px solid #cfd8e0;
+    position: fixed;
+    top: 58px;
+    left: 0;
+    width: 200px;
+    height: calc(100vh - 58px);
+    overflow-y: auto;
+}
+
+.sidebar-menu {
+    display: flex;
+    flex-direction: column;
+    padding: 18px 0;
+}
+
+.sidebar-menu a {
+    padding: 13px 22px;
+    color: #455a64;
+    text-decoration: none;
+    border-left: 4px solid transparent;
+}
+
+.sidebar-menu a:hover {
+    background-color: #f0f4f8;
+}
+
+.sidebar-menu a.active {
+    border-left-color: #3f739b;
+    background-color: #e6eef6;
+    color: #1f4e79;
+    font-weight: bold;
+}
+
+/* 一覧のメイン部分 */
+.main-content {
+    min-width: 0;
+    flex: 1;
+    padding: 26px 30px;
+    margin-left: 200px;
+}
+
+/* ページ見出し */
+.page-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 20px;
+}
+
+.page-heading h1 {
+    margin: 0;
+    color: #263b4a;
+    font-size: 26px;
+}
+
+.page-heading p {
+    margin: 7px 0 0;
+    color: #607d8b;
+    font-size: 14px;
+}
+
+/* 議事録登録リンク */
+.primary-link {
+    flex-shrink: 0;
+    padding: 10px 18px;
+    border-radius: 4px;
+    background-color: #1976d2;
+    color: #ffffff;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.primary-link:hover {
+    background-color: #1565c0;
+}
+
+/* 検索・絞り込み部分 */
+.filter-panel {
+    margin-bottom: 18px;
+    padding: 18px;
+    background-color: #ffffff;
+    border: 1px solid #cfd8e0;
+    border-radius: 4px;
+}
+
+#minutes-search {
+    max-width: 520px;
+    margin-bottom: 16px;
+    padding: 10px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+/* 状態タブ */
+.status-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+}
+
+.status-tabs button {
+    width: auto;
+    min-width: 105px;
+    margin: 0;
+    padding: 9px 16px;
+    border: 1px solid #c5d0d9;
+    border-radius: 0;
+    background-color: #ffffff;
+    color: #455a64;
+    font-size: 14px;
+}
+
+.status-tabs button:first-child {
+    border-radius: 4px 0 0 4px;
+}
+
+.status-tabs button:last-child {
+    border-radius: 0 4px 4px 0;
+}
+
+.status-tabs button + button {
+    border-left: none;
+}
+
+.status-tabs button:hover {
+    background-color: #eef4f8;
+}
+
+.status-tabs button.active {
+    background-color: #3f739b;
+    color: #ffffff;
+}
+
+/* 件数メッセージ */
+#list-message {
+    margin: 0 0 10px;
+    color: #546e7a;
+    font-size: 14px;
+}
+
+/* 一覧表 */
+.table-wrapper {
+    overflow-x: auto;
+    background-color: #ffffff;
+    border: 1px solid #cfd8e0;
+    border-radius: 4px;
+}
+
+.minutes-table {
+    width: 100%;
+    min-width: 1080px;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.minutes-table th {
+    padding: 12px 10px;
+    background-color: #e8eef3;
+    border-bottom: 1px solid #becbd5;
+    color: #31546d;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.minutes-table td {
+    padding: 12px 10px;
+    border-bottom: 1px solid #dde4e9;
+    vertical-align: middle;
+}
+
+.minutes-table tbody tr:hover {
+    background-color: #f4f8fb;
+}
+
+.minutes-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.id-cell {
+    color: #607d8b;
+    font-family: monospace;
+    font-size: 13px;
+}
+
+.meeting-name-cell {
+    min-width: 180px;
+    color: #1565a8;
+    font-weight: bold;
+}
+
+/* 状態ラベル */
+.status-badge {
+    display: inline-block;
+    min-width: 62px;
+    padding: 5px 9px;
+    border-radius: 12px;
+    text-align: center;
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.status-draft {
+    background-color: #eceff1;
+    color: #546e7a;
+}
+
+.status-pending {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.status-approved {
+    background-color: #d9f2e3;
+    color: #247245;
+}
+
+.status-rejected {
+    background-color: #fde2e2;
+    color: #b3261e;
+}
+
+/* 一覧表内の表示ボタン */
+.minutes-table .table-action {
+    width: auto;
+    margin: 0;
+    padding: 7px 12px;
+    border: 1px solid #4f83aa;
+    border-radius: 4px;
+    background-color: #ffffff;
+    color: #2f668e;
+    font-size: 13px;
+}
+
+.minutes-table .table-action:hover {
+    background-color: #e8f1f7;
+}
+
+/* 画面幅が狭い場合 */
+@media (max-width: 800px) {
+    .app-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+        padding: 12px 16px;
+    }
+
+    .header-auth {
+        flex-wrap: wrap;
+    }
+
+    .app-layout {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #cfd8e0;
+    }
+
+    .sidebar-menu {
+        flex-direction: row;
+        padding: 0;
+    }
+
+    .sidebar-menu a {
+        flex: 1;
+        padding: 12px;
+        border-left: none;
+        border-bottom: 3px solid transparent;
+        text-align: center;
+    }
+
+    .sidebar-menu a.active {
+        border-bottom-color: #3f739b;
+    }
+
+    .main-content {
+        padding: 20px 14px;
+    }
+
+    .page-heading {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .primary-link {
+        text-align: center;
+    }
+
+    .status-tabs button {
+        flex: 1;
+        min-width: 110px;
+        border: 1px solid #c5d0d9;
+        border-radius: 4px;
+    }
+
+    .status-tabs button + button {
+        border-left: 1px solid #c5d0d9;
+    }
+}
+
+
+/* ========================================
+   議事録登録画面
+======================================== */
+
+.register-page {
+    min-height: 100vh;
+    background-color: #eef2f6;
+}
+
+/* 登録画面の横幅 */
+.register-page .page-heading,
+.register-page .register-form,
+.register-page #status-message,
+.register-page .result-panel {
+    width: 100%;
+    max-width: 1100px;
+    box-sizing: border-box;
+}
+
+/* 入力内容をまとめるパネル */
+.form-panel,
+.result-panel {
+    margin-bottom: 20px;
+    padding: 24px;
+    box-sizing: border-box;
+    background-color: #ffffff;
+    border: 1px solid #cfd8e0;
+    border-radius: 4px;
+}
+
+/* パネルの見出し */
+.panel-heading {
+    margin-bottom: 22px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #dde4e9;
+}
+
+.panel-heading h2 {
+    margin: 0;
+    color: #263b4a;
+    font-size: 20px;
+}
+
+.panel-heading p {
+    margin: 6px 0 0;
+    color: #607d8b;
+    font-size: 13px;
+}
+
+/* 入力欄 */
+.register-page .form-grid {
+    margin-bottom: 0;
+    gap: 22px 26px;
+}
+
+.form-field label {
+    margin-bottom: 7px;
+    color: #37474f;
+    font-size: 14px;
+}
+
+.register-page input,
+.register-page textarea {
+    border: 1px solid #b7c4ce;
+    border-radius: 4px;
+    background-color: #ffffff;
+    font-size: 14px;
+}
+
+.register-page input {
+    padding: 11px 12px;
+}
+
+.register-page textarea {
+    min-height: 280px;
+    padding: 14px;
+    line-height: 1.7;
+}
+
+.register-page input:focus,
+.register-page textarea:focus {
+    border-color: #3f739b;
+    box-shadow: 0 0 0 2px rgba(63, 115, 155, 0.12);
+    outline: none;
+}
+
+/* TXTファイルの選択欄 */
+.file-upload-area {
+    margin-bottom: 14px;
+    padding: 14px 16px;
+    background-color: #f5f8fa;
+    border: 1px dashed #aebdc8;
+    border-radius: 4px;
+}
+
+.file-upload-area label {
+    margin-bottom: 10px;
+    color: #31546d;
+    font-size: 14px;
+}
+
+.register-page #meeting-file {
+    padding: 8px;
+    background-color: transparent;
+    border: none;
+}
+
+.register-page #meeting-file::file-selector-button {
+    margin-right: 12px;
+    padding: 8px 14px;
+    border: 1px solid #7895aa;
+    border-radius: 4px;
+    background-color: #ffffff;
+    color: #31546d;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.register-page #meeting-file::file-selector-button:hover {
+    background-color: #e8f1f7;
+}
+
+/* 作成・保存ボタンの位置 */
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 18px;
+}
+
+.form-actions button {
+    width: auto;
+    min-width: 220px;
+    margin: 0;
+    padding: 11px 22px;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+/* メッセージ */
+.register-page #status-message {
+    margin: 14px 0 20px;
+    padding: 0;
+    font-size: 14px;
+}
+
+.register-page #save-message {
+    margin-bottom: 0;
+}
+
+/* 生成結果 */
+.register-page #result {
+    margin-top: 26px;
+    padding-top: 24px;
+    border: 1px solid #cfd8e0;
+}
+
+.result-panel .result-item {
+    margin-top: 14px;
+    padding: 18px 20px;
+    background-color: #f7f9fb;
+    border-left: 4px solid #3f739b;
+    border-radius: 3px;
+}
+
+.result-panel .result-item h3 {
+    margin-bottom: 12px;
+    font-size: 17px;
+}
+
+.result-panel .result-item p,
+.result-panel .result-item ul {
+    line-height: 1.7;
+}
+
+/* スマートフォン用 */
+@media (max-width: 600px) {
+    .form-panel,
+    .result-panel {
+        padding: 18px;
+    }
+
+    .form-actions {
+        justify-content: stretch;
+    }
+
+    .form-actions button {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .register-page textarea {
+        min-height: 220px;
+    }
+}
+
+
+/* ========================================
+   議事録詳細画面
+======================================== */
+
+.detail-page {
+    min-height: 100vh;
+    background-color: #eef2f6;
+}
+
+/* 詳細画面の横幅 */
+.detail-page .page-heading,
+.detail-page #detail-message,
+.detail-page #detail-content {
+    width: 100%;
+    max-width: 1100px;
+    box-sizing: border-box;
+}
+
+
+/* 承認状態と操作部分 */
+.workflow-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 20px;
+    padding: 16px 20px;
+    box-sizing: border-box;
+    background-color: #ffffff;
+    border: 1px solid #cfd8e0;
+    border-radius: 4px;
+}
+
+.workflow-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #546e7a;
+    font-size: 14px;
+}
+
+.status-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+/* 承認操作ボタン */
+.status-buttons button {
+    width: auto;
+    min-width: 100px;
+    margin: 0;
+    padding: 8px 15px;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+#approve-button {
+    background-color: #2e7d32;
+}
+
+#approve-button:hover {
+    background-color: #256628;
+}
+
+#reject-button {
+    border: 1px solid #c62828;
+    background-color: #ffffff;
+    color: #c62828;
+}
+
+#reject-button:hover {
+    background-color: #fdeaea;
+}
+
+.detail-page #status-message {
+    flex-basis: 100%;
+    margin: 0;
+    color: #2e7d32;
+    font-size: 13px;
+}
+
+/* AI議事録・原文のパネル */
+.detail-panel {
+    padding: 24px;
+    box-sizing: border-box;
+    background-color: #ffffff;
+    border: 1px solid #cfd8e0;
+    border-radius: 4px;
+}
+
+/* AI議事録の各項目 */
+.detail-panel .result-card {
+    margin-top: 16px;
+    padding: 20px;
+    background-color: #f7f9fb;
+    border-left: 4px solid #3f739b;
+    border-radius: 3px;
+}
+
+.detail-panel .result-card h3 {
+    margin: 0 0 12px;
+    color: #31546d;
+    font-size: 17px;
+}
+
+.detail-panel .result-card p,
+.detail-panel .result-card ul {
+    margin-bottom: 0;
+    line-height: 1.7;
+}
+
+.detail-panel .result-card li + li {
+    margin-top: 7px;
+}
+
+/* 原文見出しと保存ボタン */
+.detail-panel-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.detail-panel-heading button {
+    width: auto;
+    flex-shrink: 0;
+    margin: 0;
+    padding: 9px 16px;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+/* 原文 */
+.detail-page #raw-minutes {
+    margin: 0;
+    padding: 18px;
+    background-color: #f7f9fb;
+    border: 1px solid #dde4e9;
+    border-radius: 3px;
+}
+
+/* スマートフォン用 */
+@media (max-width: 600px) {
+    .workflow-bar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .status-buttons {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .status-buttons button {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .detail-panel {
+        padding: 18px;
+    }
+
+    .detail-panel-heading {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .detail-panel-heading button {
+        width: 100%;
+    }
+
+    .detail-page #raw-minutes {
+        padding: 14px;
+    }
+}
+
+/* 議事録の連番リンク */
+.minutes-number-link {
+    color: #1565a8;
+    font-weight: bold;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.minutes-number-link:hover {
+    text-decoration: underline;
+}
