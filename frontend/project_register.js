@@ -33,7 +33,7 @@ async function initialize() {
         }
 
         userStatus.textContent =
-            `ログイン中：${profileDisplayName(currentUser.profile)}`;
+            `ログイン中：${profileDisplayName(currentUser)}`;
         loginButton.hidden = true;
         logoutButton.hidden = false;
         form.hidden = false;

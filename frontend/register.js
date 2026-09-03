@@ -73,7 +73,7 @@ async function initializeAuth() {
             !currentUser.expired
         ) {
             userStatus.textContent =
-                `ログイン中：${profileDisplayName(currentUser.profile)}`;
+                `ログイン中：${profileDisplayName(currentUser)}`;
 
             loginButton.hidden = true;
             logoutButton.hidden = false;

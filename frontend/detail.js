@@ -126,7 +126,7 @@ async function initialize() {
         }
 
         detailUserStatus.textContent =
-            `ログイン中：${profileDisplayName(currentUser.profile)}`;
+            `ログイン中：${profileDisplayName(currentUser)}`;
 
         const response =
             await fetch(
@@ -232,7 +232,7 @@ function displayMinutes(minutes) {
     titleStatus.textContent = `［${formatStatus(minutes.status)}］`;
     titleStatus.className = `status-badge status-${minutes.status || "unknown"}`;
     document.getElementById("meeting-date").textContent = minutes.meeting_date || "-";
-    document.getElementById("registered-by").textContent = displayUser(minutes.registered_by, currentUser?.profile || {});
+    document.getElementById("registered-by").textContent = displayUser(minutes.registered_by, currentUser);
     document.getElementById("assignee").textContent = minutes.assignee || "-";
     document.getElementById("approver").textContent = minutes.approver || "-";
 
@@ -269,7 +269,7 @@ function displayMinutes(minutes) {
     );
 
     displayApprovalHistory(minutes.approval_history || []);
-    renderChangeHistory(document.getElementById("minutes-change-history"), minutes.change_history || [], currentUser?.profile || {});
+    renderChangeHistory(document.getElementById("minutes-change-history"), minutes.change_history || [], currentUser);
 }
 
 
@@ -611,7 +611,7 @@ function displayApprovalHistory(history) {
         const heading = document.createElement("strong");
         heading.textContent = actionLabels[entry.action] || entry.action || "操作";
         const details = document.createElement("span");
-        details.textContent = `${displayUser(entry.operated_by, currentUser?.profile || {})}・${formatDateTime(entry.operated_at)}`;
+        details.textContent = `${displayUser(entry.operated_by, currentUser)}・${formatDateTime(entry.operated_at)}`;
         item.append(heading, details);
         if (entry.rejection_reason) {
             const reason = document.createElement("p");
