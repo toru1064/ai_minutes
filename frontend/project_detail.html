@@ -40,7 +40,6 @@
 
             <div id="detail-content" hidden>
                 <form id="project-edit-form" class="form-card" hidden><div class="form-grid"><label>プロジェクト名 *<input id="edit-name" required></label><label>責任者 *<input id="edit-manager" required></label><label>状態<select id="edit-status"><option value="active">進行中</option><option value="on_hold">保留</option><option value="completed">完了</option></select></label><label>開始日 *<input id="edit-start" type="date" required></label><label>終了予定日<input id="edit-end" type="date"></label></div><label>概要<textarea id="edit-description"></textarea></label><div class="form-actions"><button id="save-button">保存</button><button type="button" id="cancel-button" class="secondary-button">キャンセル</button></div></form>
-                <section class="detail-panel"><h2>変更履歴</h2><ul id="change-history"><li>変更履歴はありません</li></ul></section>
                 <section class="detail-panel project-summary-panel">
                     <div class="project-summary-grid">
                         <div><span>状態</span><strong id="project-status"></strong></div>
@@ -70,14 +69,14 @@
                                     <th>会議名</th>
                                     <th>会議日</th>
                                     <th>担当者</th>
-                                    <th>状態</th>
-                                    <th>詳細</th>
+                                    <th>承認状態</th>
                                 </tr>
                             </thead>
                             <tbody id="minutes-table-body"></tbody>
                         </table>
                     </div>
                 </section>
+                <section id="change-history" class="detail-panel"></section>
             </div>
         </main>
     </div>

@@ -258,10 +258,7 @@ def handle_save(body, event):
         .get("claims", {})
     )
 
-    registered_by = (
-        claims.get("email")
-        or claims.get("sub")
-    )
+    registered_by = _current_user(event)
 
     project = get_project_by_id(body["project_id"])
 
@@ -369,7 +366,7 @@ def handle_project_save(body, event):
         .get("claims", {})
     )
 
-    created_by = claims.get("email") or claims.get("sub")
+    created_by = _current_user(event)
     project = save_project(body, created_by)
 
     return create_response(
@@ -390,6 +387,11 @@ def _history(current, updates, user, raw_field=None):
     return changed, {"action": "edited", "operated_by": user,
                      "operated_at": datetime.now(timezone.utc).isoformat(),
                      "changed_fields": changed}
+
+
+def _normalize_newlines(value):
+    """Compare multiline text consistently without changing stored content."""
+    return value.replace("\r\n", "\n").replace("\r", "\n") if isinstance(value, str) else value
 
 
 def handle_project_update(project_id, body, event):
@@ -428,19 +430,29 @@ def handle_minutes_update(minutes_id, body, event):
     allowed = {"project_id", "meeting_name", "meeting_date", "assignee", "approver", "raw_minutes"}
     if set(body) - allowed:
         return create_response(400, {"message": "更新できない項目が含まれています"})
-    updates = {key: (value.strip() if isinstance(value, str) else value) for key, value in body.items()}
-    if any(not updates.get(key) for key in allowed):
+    updates = {key: (value.strip() if isinstance(value, str) and key != "raw_minutes" else value) for key, value in body.items()}
+    if not updates:
+        return create_response(200, {"message": "変更はありません", "minutes": current})
+    if any(not updates.get(key) for key in updates):
         return create_response(400, {"message": "必須項目を入力してください"})
-    if not _valid_date(updates["meeting_date"]):
+    if "meeting_date" in updates and not _valid_date(updates["meeting_date"]):
         return create_response(400, {"message": "会議日が正しくありません"})
-    project = get_project_by_id(updates["project_id"])
-    if not project:
-        return create_response(400, {"message": "指定されたプロジェクトが見つかりません"})
-    updates["project_name"] = project["project_name"]
-    raw_changed = updates["raw_minutes"] != current.get("raw_minutes", "")
+    project = None
+    if "project_id" in updates:
+        project = get_project_by_id(updates["project_id"])
+        if not project:
+            return create_response(400, {"message": "指定されたプロジェクトが見つかりません"})
+        updates["project_name"] = project["project_name"]
+    raw_changed = ("raw_minutes" in updates and
+                   _normalize_newlines(updates["raw_minutes"]) !=
+                   _normalize_newlines(current.get("raw_minutes", "")))
+    if "raw_minutes" in updates and not raw_changed:
+        updates.pop("raw_minutes")
     if raw_changed:
         updates["ai_minutes"] = {}
-    if raw_changed or current.get("status") in {"pending", "approved"}:
+    # An approved/pending record returns to draft only when an actual user field changed.
+    user_changed = any(current.get(key, "") != value for key, value in updates.items())
+    if user_changed and (raw_changed or current.get("status") in {"pending", "approved"}):
         updates["status"] = "draft"
     changed, history = _history(current, updates, _current_user(event), "raw_minutes")
     if not changed:
@@ -518,7 +530,7 @@ def handle_update_status(minutes_id, body, event):
         .get("jwt", {})
         .get("claims", {})
     )
-    operated_by = claims.get("email") or claims.get("sub")
+    operated_by = _current_user(event)
 
     updated_minutes = update_minutes_status(
         minutes_id,
@@ -560,7 +572,8 @@ def _task_progress(minutes_id, tasks=None):
 
 def _current_user(event):
     claims = event.get("requestContext", {}).get("authorizer", {}).get("jwt", {}).get("claims", {})
-    return claims.get("email") or claims.get("sub") or "不明なユーザー"
+    return (claims.get("email") or claims.get("cognito:username") or
+            claims.get("username") or claims.get("sub") or "不明なユーザー")
 
 def _valid_date(value):
     try:

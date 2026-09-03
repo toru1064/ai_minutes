@@ -74,8 +74,8 @@
             </p>
 
             <div id="detail-content" hidden>
-                <form id="minutes-edit-form" class="form-card" hidden><div class="form-grid"><label>プロジェクト *<select id="edit-project" required></select></label><label>会議名 *<input id="edit-meeting-name" required></label><label>会議日 *<input id="edit-meeting-date" type="date" required></label><label>担当者 *<input id="edit-assignee" required></label><label>承認者 *<input id="edit-approver" required></label></div><label>会議内容の原文 *<textarea id="edit-raw" required rows="10"></textarea></label><div class="form-actions"><button id="minutes-save-button">保存</button><button type="button" id="minutes-cancel-button" class="secondary-button">キャンセル</button></div></form>
-                <section class="detail-panel"><h2>変更履歴</h2><ul id="minutes-change-history"><li>変更履歴はありません</li></ul></section>
+                <form id="minutes-edit-form" class="form-card" hidden><div class="form-grid"><label>プロジェクト *<select id="edit-project" required></select></label><label>会議名 *<input id="edit-meeting-name" required></label><label>会議日 *<input id="edit-meeting-date" type="date" required></label><label>担当者 *<input id="edit-assignee" required></label><label>承認者 *<input id="edit-approver" required></label></div><div class="form-actions"><button id="minutes-save-button">保存</button><button type="button" id="minutes-cancel-button" class="secondary-button">キャンセル</button></div></form>
+
                 <!-- 議事録の基本情報 -->
                 <section class="detail-metadata">
                     <dl><dt>プロジェクト</dt><dd id="meeting-project"></dd></dl>
@@ -134,21 +134,18 @@
                             </p>
                         </div>
 
-                        <button
-                            type="button"
-                            id="download-button"
-                        >
-                            TXTで保存
-                        </button>
+                        <div class="heading-actions"><button type="button" id="raw-edit-button" class="action-link">✎ 原文を編集</button><button type="button" id="download-button">TXTで保存</button></div>
                     </div>
 
-                    <pre id="raw-minutes"></pre>
+                    <pre id="raw-minutes"></pre><form id="raw-edit-form" hidden><label for="edit-raw">会議内容（原文）</label><textarea id="edit-raw" required rows="12"></textarea><div class="form-actions"><button id="raw-save-button">保存</button><button type="button" id="raw-cancel-button" class="secondary-button">キャンセル</button></div></form>
                 </section>
 
                 <section class="related-minutes-panel">
                     <div class="panel-heading"><div><h2>関連するチケット</h2><p id="ticket-progress">読み込んでいます...</p></div><a id="task-register-link" class="primary-link">＋ この議事録にチケットを登録</a></div>
-                    <p id="tasks-message"></p><div class="table-wrapper"><table class="minutes-table"><thead><tr><th>#</th><th>件名</th><th>担当者</th><th>期限</th><th>状態</th><th>詳細</th></tr></thead><tbody id="tasks-table-body"></tbody></table></div>
+                    <p id="tasks-message"></p><div class="table-wrapper"><table class="minutes-table"><thead><tr><th>#</th><th>件名</th><th>担当者</th><th>期限</th><th>状態</th></tr></thead><tbody id="tasks-table-body"></tbody></table></div>
                 </section>
+
+                <section id="minutes-change-history" class="detail-panel"></section>
 
                 <!-- 承認操作と履歴は詳細画面の下部に表示 -->
                 <section class="workflow-bar approval-history-section"><h2>承認履歴</h2><ol id="approval-history" class="approval-history"></ol></section>
