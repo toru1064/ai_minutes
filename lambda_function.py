@@ -1,5 +1,6 @@
 import json
 from datetime import date, datetime, timezone
+from decimal import Decimal
 
 from botocore.exceptions import ClientError
 
@@ -26,13 +27,24 @@ from project_service import (
 
 
 # API Gatewayへ返すレスポンスを作成
+def _json_default(value):
+    if isinstance(value, Decimal):
+        if value == value.to_integral_value():
+            return int(value)
+        return float(value)
+
+    raise TypeError(
+        f"Object of type {type(value).__name__} is not JSON serializable"
+    )
+
+
 def create_response(status_code, body):
     return {
         "statusCode": status_code,
         "headers": {
             "Content-Type": "application/json; charset=utf-8"
         },
-        "body": json.dumps(body, ensure_ascii=False)
+        "body": json.dumps(body, ensure_ascii=False, default=_json_default)
     }
 
 
@@ -45,6 +57,9 @@ def lambda_handler(event, context):
 
     route_key = event.get("routeKey", "")
     path_parameters = event.get("pathParameters") or {}
+    minutes_id = path_parameters.get("minutes_id")
+    project_id = path_parameters.get("project_id")
+    task_id = path_parameters.get("task_id")
 
     # チケットAPI
     if route_key == "GET /tasks":
@@ -52,16 +67,15 @@ def lambda_handler(event, context):
     if route_key == "POST /tasks":
         return handle_task_save(body, event)
     if route_key == "GET /tasks/{task_id}":
-        return handle_task_detail(path_parameters.get("task_id"))
+        return handle_task_detail(task_id)
     if route_key == "PATCH /tasks/{task_id}":
-        return handle_task_update(path_parameters.get("task_id"), body, event)
+        return handle_task_update(task_id, body, event)
 
     # プロジェクトを1件取得
     if route_key == "GET /projects/{project_id}":
-        project_id = path_parameters.get("project_id")
         return handle_project_detail(project_id)
     if route_key == "PATCH /projects/{project_id}":
-        return handle_project_update(path_parameters.get("project_id"), body, event)
+        return handle_project_update(project_id, body, event)
 
     # プロジェクト一覧を取得
     if route_key == "GET /projects":
@@ -73,20 +87,16 @@ def lambda_handler(event, context):
 
     # 保存済みの原文からAI議事録を生成
     if route_key == "POST /minutes/{minutes_id}/generate":
-        minutes_id = path_parameters.get("minutes_id")
         return handle_generate_saved(minutes_id)
 
     # 議事録の状態を更新
     if route_key == "PATCH /minutes/{minutes_id}/status":
-        minutes_id = path_parameters.get("minutes_id")
-
         return handle_update_status(minutes_id, body, event)
     if route_key == "PATCH /minutes/{minutes_id}":
         return handle_minutes_update(minutes_id, body, event)
 
     # IDを指定して議事録を1件取得
     if route_key == "GET /minutes/{minutes_id}":
-        minutes_id = path_parameters.get("minutes_id")
         return handle_detail(minutes_id)
 
     # GET /minutesは議事録一覧を取得
