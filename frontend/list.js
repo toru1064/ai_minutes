@@ -55,7 +55,7 @@ async function initialize() {
         }
 
         userStatus.textContent =
-            `ログイン中：${currentUser.profile.email}`;
+            `ログイン中：${currentUser.profile.name||currentUser.profile.display_name||currentUser.profile.preferred_username||currentUser.profile["cognito:username"]||currentUser.profile.username||(currentUser.profile.email||"").split("@")[0]||"ユーザー"}`;
 
         loginButton.hidden = true;
         logoutButton.hidden = false;
@@ -199,7 +199,7 @@ function addNumberCell(
 
     link.textContent =
         minutesNumber
-            ? `#${minutesNumber}`
+            ? String(minutesNumber)
             : "-";
 
     link.href =
@@ -243,29 +243,6 @@ function addStatusCell(row, status) {
     );
 
     cell.appendChild(statusBadge);
-    row.appendChild(cell);
-}
-
-
-// 詳細ページへ移動するボタンを作成
-function addViewButton(
-    row,
-    label,
-    minutesId
-) {
-    const cell = document.createElement("td");
-    const button = document.createElement("button");
-
-    button.type = "button";
-    button.textContent = label;
-    button.classList.add("table-action");
-
-    button.addEventListener("click", () => {
-        window.location.href =
-            `detail.html?id=${encodeURIComponent(minutesId)}`;
-    });
-
-    cell.appendChild(button);
     row.appendChild(cell);
 }
 

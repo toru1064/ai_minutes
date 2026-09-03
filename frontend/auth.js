@@ -21,7 +21,7 @@ const cognitoConfig = {
         "code",
 
     scope:
-        "openid email"
+        "openid email profile"
 };
 
 

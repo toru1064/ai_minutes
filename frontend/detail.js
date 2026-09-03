@@ -126,7 +126,7 @@ async function initialize() {
         }
 
         detailUserStatus.textContent =
-            `ログイン中：${currentUser.profile.email}`;
+            `ログイン中：${currentUser.profile.name||currentUser.profile.display_name||currentUser.profile.preferred_username||currentUser.profile["cognito:username"]||currentUser.profile.username||(currentUser.profile.email||"").split("@")[0]||"ユーザー"}`;
 
         const response =
             await fetch(
@@ -179,7 +179,7 @@ async function loadRelatedTasks() {
     document.getElementById("ticket-progress").textContent=tasks.length?`${completed} / ${tasks.length}件完了`:"チケットなし";
     document.getElementById("tasks-message").textContent=tasks.length?`全${tasks.length}件`:"関連するチケットはありません";
     const tbody=document.getElementById("tasks-table-body");tbody.innerHTML="";const labels={not_started:"未着手",in_progress:"進行中",completed:"完了",review_pending:"進行中（旧状態）",rejected:"進行中（旧状態）"};
-    for(const task of tasks){const row=document.createElement("tr"),href=`task_detail.html?id=${encodeURIComponent(task.task_id)}&return_to=${encodeURIComponent(`detail.html?id=${minutesId}`)}`;for(const [value,linked] of [[`#${task.task_number}`,true],[task.title,true],[task.assignee],[task.due_date]]){const cell=document.createElement("td");if(linked){const link=document.createElement("a");link.href=href;link.textContent=value||"-";link.className="table-link";cell.appendChild(link);}else cell.textContent=value||"-";row.appendChild(cell);}const statusCell=document.createElement("td"),badge=document.createElement("span");badge.className=`status-badge task-status-${task.status==="completed"?"completed":task.status==="not_started"?"not_started":"in_progress"}`;badge.textContent=labels[task.status]||task.status;statusCell.appendChild(badge);row.appendChild(statusCell);tbody.appendChild(row);}
+    for(const task of tasks){const row=document.createElement("tr"),href=`task_detail.html?id=${encodeURIComponent(task.task_id)}&return_to=${encodeURIComponent(`detail.html?id=${minutesId}`)}`;for(const [value,linked] of [[`${task.task_number}`,true],[task.title,true],[task.assignee],[task.due_date]]){const cell=document.createElement("td");if(linked){const link=document.createElement("a");link.href=href;link.textContent=value||"-";link.className="table-link";cell.appendChild(link);}else cell.textContent=value||"-";row.appendChild(cell);}const statusCell=document.createElement("td"),badge=document.createElement("span");badge.className=`status-badge task-status-${task.status==="completed"?"completed":task.status==="not_started"?"not_started":"in_progress"}`;badge.textContent=labels[task.status]||task.status;statusCell.appendChild(badge);row.appendChild(statusCell);tbody.appendChild(row);}
 }
 
 // 選択された内容だけを表示
@@ -228,6 +228,9 @@ function displayMinutes(minutes) {
 
     document.getElementById("minutes-number").textContent =
         minutes.minutes_number ? `#${minutes.minutes_number}` : "-";
+    const titleStatus = document.getElementById("title-status");
+    titleStatus.textContent = `［${formatStatus(minutes.status)}］`;
+    titleStatus.className = `status-badge status-${minutes.status || "unknown"}`;
     document.getElementById("meeting-date").textContent = minutes.meeting_date || "-";
     document.getElementById("registered-by").textContent = displayUser(minutes.registered_by, currentUser?.profile || {});
     document.getElementById("assignee").textContent = minutes.assignee || "-";
@@ -373,8 +376,10 @@ function displayAiGenerationArea(minutes) {
     const message =
         document.createElement("p");
 
-    message.textContent =
-        "AI議事録はまだ作成されていません。";
+    const isRegeneration = (minutes.change_history || []).some(entry => entry.changed_fields?.raw_minutes);
+    message.textContent = isRegeneration
+        ? "原文が変更されたため、AI議事録の再作成が必要です。"
+        : "AI議事録はまだ作成されていません。";
 
     const generateButton =
         document.createElement("button");
@@ -382,8 +387,7 @@ function displayAiGenerationArea(minutes) {
     generateButton.type =
         "button";
 
-    generateButton.textContent =
-        "AI議事録を作成";
+    generateButton.textContent = isRegeneration ? "AI議事録を再作成" : "AI議事録を作成";
 
     const generateMessage =
         document.createElement("p");
@@ -514,6 +518,7 @@ function displayStatusButtons(status) {
         status === "draft" ||
         status === "rejected"
     ) {
+        requestButton.textContent = (currentMinutes.approval_history || []).length ? "承認を再申請" : "承認を申請";
         requestButton.hidden = false;
     } else if (status === "pending") {
         approveButton.hidden = false;
@@ -659,7 +664,7 @@ function displayTodos(todos) {
     if(!todos.length){addListItem(list,hasAiMinutes(currentMinutes)?"AI抽出TODOはありません":"AI議事録を作成するとTODOが表示されます");return;}
     const unregistered=todos.filter((_,i)=>!relatedTasks.some(t=>t.source_type==="ai"&&String(t.source_todo_index)===String(i))).length;
     link.href=`todo_to_tasks.html?id=${encodeURIComponent(minutesId)}`; link.textContent=`AI抽出TODOからチケットを作成（未登録 ${unregistered}件）`;
-    todos.forEach((todo,index)=>{const made=relatedTasks.find(t=>t.source_type==="ai"&&String(t.source_todo_index)===String(index)),li=document.createElement("li"),title=document.createElement("strong"),meta=document.createElement("div");title.textContent=todo.task||todo.description||"（本文なし）";meta.className="todo-meta";meta.textContent=`担当：${todo.assignee||"未設定"}　期限：${todo.deadline||"未設定"}`;li.append(title,meta);if(made){const a=document.createElement("a");a.href=`task_detail.html?id=${encodeURIComponent(made.task_id)}`;a.textContent=`チケット作成済み：#${made.task_number}`;li.appendChild(a);}list.appendChild(li);});
+    todos.forEach((todo,index)=>{const made=relatedTasks.find(t=>t.source_type==="ai"&&String(t.source_todo_index)===String(index)),li=document.createElement("li"),title=document.createElement("strong"),meta=document.createElement("div");title.textContent=todo.task||todo.description||"（本文なし）";meta.className="todo-meta";meta.textContent=`担当：${todo.assignee||"未設定"}　期限：${todo.deadline||"未設定"}`;li.append(title,meta);if(made){const a=document.createElement("a");a.href=`task_detail.html?id=${encodeURIComponent(made.task_id)}`;a.textContent=`チケット作成済み：${made.task_number}`;li.appendChild(a);}list.appendChild(li);});
 }
 
 // リストへ項目を追加
@@ -812,9 +817,9 @@ editForm.addEventListener("submit",async event=>{event.preventDefault();const pa
 document.getElementById("raw-edit-button").addEventListener("click",()=>{document.getElementById("edit-raw").value=currentMinutes.raw_minutes||"";rawDirty=false;rawForm.hidden=false;document.getElementById("raw-minutes").hidden=true;document.getElementById("raw-edit-button").hidden=true;});
 document.getElementById("edit-raw").addEventListener("input",event=>rawDirty=normalizeNewlines(event.target.value)!==normalizeNewlines(currentMinutes.raw_minutes));
 document.getElementById("raw-cancel-button").addEventListener("click",()=>{if(rawDirty&&!confirm("未保存の変更を破棄しますか？"))return;closeRawEdit();});
-rawForm.addEventListener("submit",async event=>{event.preventDefault();const raw=document.getElementById("edit-raw").value;if(normalizeNewlines(raw)===normalizeNewlines(currentMinutes.raw_minutes)){closeRawEdit();detailMessage.textContent="変更はありません";return;}if(!confirm("原文を変更すると現在のAI議事録が削除され、承認状態が下書きに戻ります。保存しますか？"))return;await saveMinutes({raw_minutes:raw},document.getElementById("raw-save-button"),closeRawEdit);});
+rawForm.addEventListener("submit",async event=>{event.preventDefault();const raw=document.getElementById("edit-raw").value;if(normalizeNewlines(raw)===normalizeNewlines(currentMinutes.raw_minutes)){closeRawEdit();detailMessage.textContent="変更はありません";return;}if(!confirm("原文を変更すると現在のAI議事録が削除され、承認状態が下書きに戻ります。保存しますか？"))return;await saveMinutes({raw_minutes:raw},document.getElementById("raw-save-button"),()=>{closeRawEdit();history.replaceState(null,"","#ai-section");displaySelectedSection("ai-section");detailMessage.textContent="原文が変更されたため、AI議事録の再作成が必要です";});});
 function closeRawEdit(){rawDirty=false;rawForm.hidden=true;document.getElementById("raw-minutes").hidden=false;document.getElementById("raw-edit-button").hidden=false;}
-async function saveMinutes(payload,button,onSuccess){if(button.disabled)return;button.disabled=true;try{const response=await fetch(`${apiUrl}/${encodeURIComponent(minutesId)}`,{method:"PATCH",headers:{"Content-Type":"application/json",Authorization:`Bearer ${currentUser.access_token}`},body:JSON.stringify(payload)}),data=await response.json();if(!response.ok)throw new Error(data.message);currentMinutes=data.minutes;onSuccess();displayMinutes(currentMinutes);detailMessage.textContent=data.message||"更新しました";}catch(error){detailMessage.textContent=error.message;}finally{button.disabled=false;}}
+async function saveMinutes(payload,button,onSuccess){if(button.disabled)return;button.disabled=true;try{const response=await fetch(`${apiUrl}/${encodeURIComponent(minutesId)}`,{method:"PATCH",headers:{"Content-Type":"application/json",Authorization:`Bearer ${currentUser.access_token}`},body:JSON.stringify(payload)}),data=await response.json();if(!response.ok)throw new Error(data.message);currentMinutes=data.minutes;displayMinutes(currentMinutes);onSuccess();if(!payload.raw_minutes)detailMessage.textContent=data.message||"更新しました";}catch(error){detailMessage.textContent=error.message;}finally{button.disabled=false;}}
 window.addEventListener("beforeunload",event=>{if(editDirty||rawDirty){event.preventDefault();event.returnValue="";}});
 
 // ログアウト
