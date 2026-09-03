@@ -4,6 +4,7 @@ import {
     login,
     logout
 } from "./auth.js";
+import {setupSearchSelect} from "./search-select.js";
 
 
 // API Gatewayの議事録登録URL
@@ -51,8 +52,8 @@ const approver =
 const meetingFile =
     document.getElementById("meeting-file");
 
-const projectSelect =
-    document.getElementById("project-id");
+const projectSelect = document.getElementById("project-id");
+const projectSearch = document.getElementById("project-search");
 
 
 let currentUser = null;
@@ -122,21 +123,21 @@ async function loadProjects() {
 
     const projects = data.projects || [];
 
-    for (const project of projects) {
-        const option = document.createElement("option");
-        option.value = project.project_id;
-        option.textContent =
-            `#${project.project_number} ${project.project_name}`;
-        projectSelect.appendChild(option);
-    }
-
     const selectedProjectId =
-        new URLSearchParams(window.location.search)
-            .get("project_id");
+        new URLSearchParams(window.location.search).get("project_id") || "";
 
-    if (selectedProjectId) {
-        projectSelect.value = selectedProjectId;
-    }
+    setupSearchSelect(
+        projectSearch,
+        projectSelect,
+        projects.map(project => ({...project, number: project.project_number})),
+        {
+            id: project => project.project_id,
+            label: project =>
+                `#${project.project_number} ${project.project_name}` +
+                `（責任者：${project.manager || "未設定"}）`,
+            selectedId: selectedProjectId
+        }
+    );
 
     if (projects.length === 0) {
         statusMessage.textContent =

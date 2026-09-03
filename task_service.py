@@ -34,11 +34,13 @@ def save_task(task_data, created_by):
         "due_date": task_data["due_date"],
         "priority": task_data.get("priority", "normal"),
         "status": "not_started",
-        "source_type": "manual",
+        "source_type": task_data.get("source_type", "manual"),
         "created_by": created_by,
         "created_at": now,
         "updated_at": now
     }
+    if task_data.get("source_todo_index") is not None:
+        item["source_todo_index"] = str(task_data["source_todo_index"])
     table.put_item(Item=item)
     return item
 
@@ -65,6 +67,14 @@ def get_task_by_id(task_id):
     if not task_id:
         return None
     return table.get_item(Key={"task_id": task_id}).get("Item")
+
+
+def get_ai_task(minutes_id, todo_index):
+    """正式チケットを基準に、AI TODO候補の登録済み状態を調べる。"""
+    index = str(todo_index)
+    return next((task for task in get_tasks({"source_minutes_id": minutes_id})
+                 if task.get("source_type") == "ai"
+                 and str(task.get("source_todo_index")) == index), None)
 
 
 def update_task(task_id, updates):
