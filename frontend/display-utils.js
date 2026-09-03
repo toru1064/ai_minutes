@@ -7,8 +7,15 @@ const FIELD_LABELS = {
 };
 const STATUS_LABELS = {draft:"下書き",pending:"承認待ち",approved:"承認済み",rejected:"差し戻し",active:"進行中",on_hold:"保留",completed:"完了",not_started:"未着手",in_progress:"進行中"};
 
-export function displayUser(value, profile = {}) {
+export function normalizeUserProfile(userOrProfile = {}) {
+    if (!userOrProfile || typeof userOrProfile !== "object") return {};
+    const profile = userOrProfile.profile;
+    return profile && typeof profile === "object" ? profile : userOrProfile;
+}
+
+export function displayUser(value, userOrProfile = {}) {
     if (!value) return "不明なユーザー";
+    const profile = normalizeUserProfile(userOrProfile);
     // sub は本人判定にだけ使い、表示名を識別子として扱わない。
     if (profile.sub && String(value) === String(profile.sub)) {
         return profileDisplayName(profile);
@@ -16,7 +23,8 @@ export function displayUser(value, profile = {}) {
     return abbreviatedUser(value);
 }
 
-export function profileDisplayName(profile = {}) {
+export function profileDisplayName(userOrProfile = {}) {
+    const profile = normalizeUserProfile(userOrProfile);
     return firstText(
         profile.name,
         profile.preferred_username,
@@ -31,7 +39,6 @@ export function profileDisplayName(profile = {}) {
 function abbreviatedUser(value) {
     const text = String(value || "").trim();
     if (!text) return "不明なユーザー";
-    if (text.includes("@")) return emailLocalPart(text);
     return isUuid(text) ? `ユーザー（${text.slice(0, 8)}…）` : text;
 }
 
@@ -54,14 +61,14 @@ function displayValue(field, value) {
     return STATUS_LABELS[value] || String(value);
 }
 
-export function renderChangeHistory(container, history = [], profile = {}) {
+export function renderChangeHistory(container, history = [], userOrProfile = {}) {
     container.innerHTML = "";
     const outer = document.createElement("details"); outer.className = "change-history";
     const summary = document.createElement("summary"); summary.textContent = `変更履歴（${history.length}件）`; outer.appendChild(summary);
     if (!history.length) { const p=document.createElement("p"); p.textContent="変更履歴はありません"; outer.appendChild(p); container.appendChild(outer); return; }
     [...history].reverse().forEach(entry => {
         const item=document.createElement("details"), heading=document.createElement("summary");
-        heading.textContent=`${entry.operated_at ? new Date(entry.operated_at).toLocaleString("ja-JP") : "日時不明"}　${displayUser(entry.operated_by, profile)}`;
+        heading.textContent=`${entry.operated_at ? new Date(entry.operated_at).toLocaleString("ja-JP") : "日時不明"}　${displayUser(entry.operated_by, userOrProfile)}`;
         item.appendChild(heading);
         Object.entries(entry.changed_fields || {}).forEach(([field, change]) => {
             const row=document.createElement("div"); row.className="history-change";
