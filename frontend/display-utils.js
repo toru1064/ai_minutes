@@ -9,20 +9,43 @@ const STATUS_LABELS = {draft:"下書き",pending:"承認待ち",approved:"承認
 
 export function displayUser(value, profile = {}) {
     if (!value) return "不明なユーザー";
-    if (value === profile.sub || value === profile.email || value === profile["cognito:username"] || value === profile.username) {
-        return profile.name || profile.display_name || profile.preferred_username || profile["cognito:username"] || profile.username || abbreviatedUser(profile.email || value);
+    // sub は本人判定にだけ使い、表示名を識別子として扱わない。
+    if (profile.sub && String(value) === String(profile.sub)) {
+        return profileDisplayName(profile);
     }
     return abbreviatedUser(value);
 }
 
 export function profileDisplayName(profile = {}) {
-    return profile.name || profile.display_name || profile.preferred_username || profile["cognito:username"] || profile.username || abbreviatedUser(profile.email || profile.sub || "");
+    return firstText(
+        profile.name,
+        profile.preferred_username,
+        profile["cognito:username"],
+        profile.username,
+        emailLocalPart(profile.email),
+        abbreviatedUser(profile.sub),
+        "ユーザー"
+    );
 }
 
 function abbreviatedUser(value) {
-    const text = String(value);
-    if (text.includes("@")) return text.split("@")[0];
-    return /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(text) ? `ユーザー（…${text.slice(-4)}）` : text;
+    const text = String(value || "").trim();
+    if (!text) return "不明なユーザー";
+    if (text.includes("@")) return emailLocalPart(text);
+    return isUuid(text) ? `ユーザー（${text.slice(0, 8)}…）` : text;
+}
+
+function emailLocalPart(value) {
+    const text = String(value || "").trim();
+    return text.includes("@") ? text.slice(0, text.indexOf("@")) : text;
+}
+
+function firstText(...values) {
+    return values.find(value => typeof value === "string" && value.trim())?.trim() || "ユーザー";
+}
+
+function isUuid(value) {
+    return /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(value);
 }
 
 function displayValue(field, value) {

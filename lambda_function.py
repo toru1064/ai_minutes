@@ -574,9 +574,11 @@ def _current_user(event):
     claims = event.get("requestContext", {}).get("authorizer", {}).get("jwt", {}).get("claims", {})
     # 表示名を保存できる場合は優先する。既存のメールアドレスやsubの履歴は
     # フロント側で短縮表示し、保存済みデータそのものは変更しない。
-    return (claims.get("name") or claims.get("display_name") or
+    email = claims.get("email", "")
+    email_name = email.split("@", 1)[0] if "@" in email else email
+    return (claims.get("name") or claims.get("preferred_username") or
             claims.get("cognito:username") or claims.get("username") or
-            claims.get("email") or claims.get("sub") or "不明なユーザー")
+            email_name or claims.get("sub") or "不明なユーザー")
 
 def _valid_date(value):
     try:

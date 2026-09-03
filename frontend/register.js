@@ -4,6 +4,7 @@ import {
     login,
     logout
 } from "./auth.js";
+import {profileDisplayName} from "./display-utils.js";
 import {setupSearchSelect} from "./search-select.js";
 
 
@@ -72,7 +73,7 @@ async function initializeAuth() {
             !currentUser.expired
         ) {
             userStatus.textContent =
-                `ログイン中：${currentUser.profile.name||currentUser.profile.display_name||currentUser.profile.preferred_username||currentUser.profile["cognito:username"]||currentUser.profile.username||(currentUser.profile.email||"").split("@")[0]||"ユーザー"}`;
+                `ログイン中：${profileDisplayName(currentUser.profile)}`;
 
             loginButton.hidden = true;
             logoutButton.hidden = false;
