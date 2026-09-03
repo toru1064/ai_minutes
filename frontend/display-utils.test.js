@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {displayUser, normalizeUserProfile, profileDisplayName} from "./display-utils.js";
+import {readdir, readFile} from "node:fs/promises";
+import {fileURLToPath} from "node:url";
+
+import {displayUser, normalizeUserProfile, profileDisplayName, setProfileDisplay, setUserDisplay} from "./display-utils.js";
 
 const sub = "12345678-1234-1234-1234-123456789abc";
 const cognitoSub = "d7e43ae8-1021-7059-2016-9886ec5da042";
@@ -46,4 +49,41 @@ test("subだけの場合と他人のUUIDは完全なUUIDを表示しない", () 
 test("UUID以外の保存済みユーザー名は変更しない", () => {
     assert.equal(displayUser("承認担当者", {profile: {sub}}), "承認担当者");
     assert.equal(displayUser("person@example.com", {profile: {sub}}), "person@example.com");
+});
+
+test("画面初期化後のヘッダーと登録者に完全なCognito subを残さない", () => {
+    const header = {textContent: ""};
+    const registeredBy = {textContent: ""};
+    const user = {profile: {sub: cognitoSub}};
+
+    setProfileDisplay(header, user, "ログイン中：");
+    setUserDisplay(registeredBy, cognitoSub, user);
+
+    assert.equal(header.textContent, "ログイン中：ユーザー（d7e43ae8…）");
+    assert.equal(registeredBy.textContent, "ユーザー（d7e43ae8…）");
+    assert.equal(header.textContent.includes(cognitoSub), false);
+    assert.equal(registeredBy.textContent.includes(cognitoSub), false);
+});
+
+test("同じ要素への後続のユーザー表示も必ず短縮する", () => {
+    const element = {textContent: ""};
+    const user = {profile: {sub: cognitoSub}};
+
+    setProfileDisplay(element, user, "ログイン中：");
+    setUserDisplay(element, cognitoSub, user, "登録者 ");
+
+    assert.equal(element.textContent, "登録者 ユーザー（d7e43ae8…）");
+    assert.equal(element.textContent.includes(cognitoSub), false);
+});
+
+test("画面スクリプトはユーザー識別子をDOMへ直接設定しない", async () => {
+    const directory = fileURLToPath(new URL(".", import.meta.url));
+    const files = (await readdir(directory)).filter(file => file.endsWith(".js") && !file.endsWith(".test.js") && file !== "display-utils.js");
+    const identityField = "(?:profile\\.sub|created_by|registered_by|updated_by|requested_by|approved_by|operated_by)";
+    const directDomWrite = new RegExp(`(?:textContent|innerHTML)\\s*=\\s*[^;\\n]*${identityField}`);
+
+    for (const file of files) {
+        const source = await readFile(new URL(file, import.meta.url), "utf8");
+        assert.doesNotMatch(source, directDomWrite, `${file} にユーザー識別子の直接表示があります`);
+    }
 });

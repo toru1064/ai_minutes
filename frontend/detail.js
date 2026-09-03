@@ -2,7 +2,7 @@ import {
     getCurrentUser,
     logout
 } from "./auth.js";
-import {displayUser, profileDisplayName, renderChangeHistory} from "./display-utils.js";
+import {setProfileDisplay, setUserDisplay, renderChangeHistory} from "./display-utils.js";
 
 
 // API GatewayのURL
@@ -125,8 +125,7 @@ async function initialize() {
             return;
         }
 
-        detailUserStatus.textContent =
-            `ログイン中：${profileDisplayName(currentUser)}`;
+        setProfileDisplay(detailUserStatus, currentUser, "ログイン中：");
 
         const response =
             await fetch(
@@ -232,7 +231,7 @@ function displayMinutes(minutes) {
     titleStatus.textContent = `［${formatStatus(minutes.status)}］`;
     titleStatus.className = `status-badge status-${minutes.status || "unknown"}`;
     document.getElementById("meeting-date").textContent = minutes.meeting_date || "-";
-    document.getElementById("registered-by").textContent = displayUser(minutes.registered_by, currentUser);
+    setUserDisplay(document.getElementById("registered-by"), minutes.registered_by, currentUser);
     document.getElementById("assignee").textContent = minutes.assignee || "-";
     document.getElementById("approver").textContent = minutes.approver || "-";
 
@@ -611,7 +610,8 @@ function displayApprovalHistory(history) {
         const heading = document.createElement("strong");
         heading.textContent = actionLabels[entry.action] || entry.action || "操作";
         const details = document.createElement("span");
-        details.textContent = `${displayUser(entry.operated_by, currentUser)}・${formatDateTime(entry.operated_at)}`;
+        setUserDisplay(details, entry.operated_by, currentUser, "");
+        details.append(`・${formatDateTime(entry.operated_at)}`);
         item.append(heading, details);
         if (entry.rejection_reason) {
             const reason = document.createElement("p");

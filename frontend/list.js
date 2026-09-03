@@ -4,7 +4,7 @@ import {
     login,
     logout
 } from "./auth.js";
-import {profileDisplayName} from "./display-utils.js";
+import {setProfileDisplay} from "./display-utils.js";
 import {createDynamicFilters, matchesFilter} from "./dynamic-filters.js";
 
 
@@ -55,8 +55,7 @@ async function initialize() {
             return;
         }
 
-        userStatus.textContent =
-            `ログイン中：${profileDisplayName(currentUser)}`;
+        setProfileDisplay(userStatus, currentUser, "ログイン中：");
 
         loginButton.hidden = true;
         logoutButton.hidden = false;
