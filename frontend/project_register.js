@@ -4,7 +4,7 @@ import {
     login,
     logout
 } from "./auth.js";
-import {profileDisplayName} from "./display-utils.js";
+import {setProfileDisplay} from "./display-utils.js";
 
 
 const apiUrl =
@@ -32,8 +32,7 @@ async function initialize() {
             return;
         }
 
-        userStatus.textContent =
-            `ログイン中：${profileDisplayName(currentUser)}`;
+        setProfileDisplay(userStatus, currentUser, "ログイン中：");
         loginButton.hidden = true;
         logoutButton.hidden = false;
         form.hidden = false;

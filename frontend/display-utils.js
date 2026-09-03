@@ -38,6 +38,21 @@ export function profileDisplayName(userOrProfile = {}) {
     );
 }
 
+/**
+ * ユーザー識別子を DOM に表示する唯一の入口。
+ * 値を直接 textContent に渡さず、必ず表示用の名前へ変換してから設定する。
+ */
+export function setUserDisplay(element, value, userOrProfile = {}, prefix = "") {
+    if (!element) return;
+    element.textContent = `${prefix}${displayUser(value, userOrProfile)}`;
+}
+
+/** ログイン中ユーザーをヘッダーへ表示する。 */
+export function setProfileDisplay(element, userOrProfile = {}, prefix = "") {
+    if (!element) return;
+    element.textContent = `${prefix}${profileDisplayName(userOrProfile)}`;
+}
+
 function abbreviatedUser(value) {
     const text = String(value || "").trim();
     if (!text) return "不明なユーザー";
@@ -70,7 +85,7 @@ export function renderChangeHistory(container, history = [], userOrProfile = {})
     if (!history.length) { const p=document.createElement("p"); p.textContent="変更履歴はありません"; outer.appendChild(p); container.appendChild(outer); return; }
     [...history].reverse().forEach(entry => {
         const item=document.createElement("details"), heading=document.createElement("summary");
-        heading.textContent=`${entry.operated_at ? new Date(entry.operated_at).toLocaleString("ja-JP") : "日時不明"}　${displayUser(entry.operated_by, userOrProfile)}`;
+        setUserDisplay(heading, entry.operated_by, userOrProfile, `${entry.operated_at ? new Date(entry.operated_at).toLocaleString("ja-JP") : "日時不明"}　`);
         item.appendChild(heading);
         Object.entries(entry.changed_fields || {}).forEach(([field, change]) => {
             const row=document.createElement("div"); row.className="history-change";
