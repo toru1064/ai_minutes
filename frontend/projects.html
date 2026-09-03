@@ -38,14 +38,10 @@
                     <a href="project_register.html" class="primary-link">＋ プロジェクトを登録</a>
                 </div>
 
-                <section class="filter-panel">
-                    <input type="search" id="project-search" placeholder="プロジェクト名・責任者を検索">
-                    <div class="status-tabs">
-                        <button type="button" class="project-status-tab active" data-status="all">すべて</button>
-                        <button type="button" class="project-status-tab" data-status="active">進行中</button>
-                        <button type="button" class="project-status-tab" data-status="on_hold">保留</button>
-                        <button type="button" class="project-status-tab" data-status="completed">完了</button>
-                    </div>
+                <section id="dynamic-filter-panel" class="dynamic-filters" aria-label="プロジェクトの検索条件" hidden>
+                    <label class="free-search">フリーワード検索<input id="free-query" type="search" placeholder="番号、プロジェクト名、責任者、概要"></label>
+                    <details id="filter-details" open><summary>フィルタ</summary><div id="filter-rows"></div><div class="filter-add-wrap"><select id="filter-add"><option value="">フィルタ追加 ▼</option></select></div><div class="filter-actions"><button type="button" id="apply-filters">適用</button><button type="button" id="clear-filters">クリア</button></div></details>
+                    <details id="option-details"><summary>オプション</summary><label>並べ替え：<select id="sort"></select></label></details>
                 </section>
 
                 <p id="list-message">プロジェクトを読み込んでいます...</p>
@@ -60,7 +56,6 @@
                                 <th>開始日</th>
                                 <th>終了予定日</th>
                                 <th>状態</th>
-                                <th>詳細</th>
                             </tr>
                         </thead>
                         <tbody id="projects-table-body"></tbody>
