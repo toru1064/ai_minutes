@@ -950,6 +950,63 @@ input:focus {
     text-decoration: underline;
 }
 
+/* 議事録詳細の基本情報とタブ */
+.detail-metadata {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    background: #d6e0e7;
+    border: 1px solid #d6e0e7;
+    border-radius: 4px;
+}
+
+.detail-metadata dl {
+    margin: 0;
+    padding: 14px 16px;
+    background: #ffffff;
+}
+
+.detail-metadata dt {
+    margin-bottom: 7px;
+    color: #607d8b;
+    font-size: 12px;
+}
+
+.detail-metadata dd { margin: 0; overflow-wrap: anywhere; }
+
+.detail-tabs { display: flex; border-bottom: 2px solid #3f739b; }
+.detail-tabs button {
+    width: auto;
+    margin: 0;
+    border-radius: 4px 4px 0 0;
+    background: #e8eef3;
+    color: #455a64;
+}
+.detail-tabs button.active { background: #3f739b; color: #ffffff; }
+
+.workflow-bar { display: block; margin-top: 20px; }
+.workflow-bar h2 { margin-top: 0; }
+.rejection-area { margin-top: 16px; padding: 16px; background: #fff8e1; }
+.rejection-area textarea { min-height: 90px; }
+.rejection-actions { display: flex; gap: 10px; }
+.secondary-button { background: #607d8b; }
+.approval-history { padding-left: 24px; }
+.approval-history li { padding: 10px 0; border-bottom: 1px solid #dde4e9; }
+.approval-history span { display: block; margin-top: 4px; color: #607d8b; font-size: 13px; }
+.approval-history p { margin-bottom: 0; white-space: pre-wrap; }
+
+@media (max-width: 700px) {
+    .detail-metadata { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 480px) {
+    .detail-metadata { grid-template-columns: 1fr; }
+    .detail-tabs button { flex: 1; padding: 11px 6px; font-size: 13px; }
+    .rejection-actions { flex-direction: column; }
+}
+
 
 /* ========================================
    プロジェクト管理画面

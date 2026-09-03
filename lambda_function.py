@@ -58,10 +58,7 @@ def lambda_handler(event, context):
     if route_key == "PATCH /minutes/{minutes_id}/status":
         minutes_id = path_parameters.get("minutes_id")
 
-        return handle_update_status(
-            minutes_id,
-            body
-        )
+        return handle_update_status(minutes_id, body, event)
 
     # IDを指定して議事録を1件取得
     if route_key == "GET /minutes/{minutes_id}":
@@ -347,7 +344,7 @@ def handle_project_save(body, event):
 
 
 # 議事録の状態を更新
-def handle_update_status(minutes_id, body):
+def handle_update_status(minutes_id, body, event):
     if not minutes_id:
         return create_response(
             400,
@@ -363,6 +360,7 @@ def handle_update_status(minutes_id, body):
         )
 
     new_status = body.get("status")
+    rejection_reason = body.get("rejection_reason", "").strip()
 
     # AI議事録の作成前は承認申請できない
     if (
@@ -386,9 +384,39 @@ def handle_update_status(minutes_id, body):
             {"message": "指定された状態が正しくありません"}
         )
 
+    allowed_transitions = {
+        "draft": ["pending"],
+        "rejected": ["pending"],
+        "pending": ["approved", "rejected"]
+    }
+
+    if new_status not in allowed_transitions.get(
+        current_minutes.get("status", "draft"), []
+    ):
+        return create_response(
+            400,
+            {"message": "現在の状態ではこの操作を実行できません"}
+        )
+
+    if new_status == "rejected" and not rejection_reason:
+        return create_response(
+            400,
+            {"message": "差し戻し理由を入力してください"}
+        )
+
+    claims = (
+        event.get("requestContext", {})
+        .get("authorizer", {})
+        .get("jwt", {})
+        .get("claims", {})
+    )
+    operated_by = claims.get("email") or claims.get("sub")
+
     updated_minutes = update_minutes_status(
         minutes_id,
-        new_status
+        new_status,
+        operated_by,
+        rejection_reason or None
     )
 
     return create_response(

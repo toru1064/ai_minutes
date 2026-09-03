@@ -120,10 +120,19 @@ def get_minutes_by_id(minutes_id):
 
 
 # 議事録の状態を更新
-def update_minutes_status(minutes_id, status):
+def update_minutes_status(minutes_id, status, operated_by, rejection_reason=None):
     updated_at = datetime.now(
         timezone.utc
     ).isoformat()
+
+    history_entry = {
+        "action": status,
+        "operated_by": operated_by or "不明なユーザー",
+        "operated_at": updated_at
+    }
+
+    if rejection_reason:
+        history_entry["rejection_reason"] = rejection_reason
 
     response = table.update_item(
         Key={
@@ -131,14 +140,18 @@ def update_minutes_status(minutes_id, status):
         },
         UpdateExpression=(
             "SET #status = :status, "
-            "updated_at = :updated_at"
+            "updated_at = :updated_at, "
+            "approval_history = list_append("
+            "if_not_exists(approval_history, :empty_list), :history)"
         ),
         ExpressionAttributeNames={
             "#status": "status"
         },
         ExpressionAttributeValues={
             ":status": status,
-            ":updated_at": updated_at
+            ":updated_at": updated_at,
+            ":empty_list": [],
+            ":history": [history_entry]
         },
         ReturnValues="ALL_NEW"
     )
