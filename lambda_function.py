@@ -118,6 +118,7 @@ def handle_detail(minutes_id):
             {"message": "議事録が見つかりません"}
         )
 
+    minutes["task_progress"] = _task_progress(minutes_id)
     return create_response(
         200,
         {"minutes": minutes}
@@ -127,6 +128,9 @@ def handle_detail(minutes_id):
 # DynamoDBから議事録一覧を取得
 def handle_list():
     items = get_minutes()
+    tasks = get_tasks()
+    for item in items:
+        item["task_progress"] = _task_progress(item["minutes_id"], tasks)
 
     return create_response(
         200,
@@ -435,7 +439,8 @@ def handle_update_status(minutes_id, body, event):
         minutes_id,
         new_status,
         operated_by,
-        rejection_reason or None
+        rejection_reason or None,
+        _task_progress(minutes_id) if new_status == "approved" else None
     )
 
     return create_response(
@@ -447,10 +452,17 @@ def handle_update_status(minutes_id, body, event):
     )
 
 
-TASK_STATUSES = {"not_started", "in_progress", "review_pending", "completed", "rejected"}
+TASK_STATUSES = {"not_started", "in_progress", "completed"}
+LEGACY_TASK_STATUSES = {"review_pending", "rejected"}
 TASK_PRIORITIES = {"low", "normal", "high", "urgent"}
-TASK_REQUIRED_FIELDS = ("project_id", "title", "assignee", "reviewer", "due_date")
-TASK_EDITABLE_FIELDS = {"project_id", "title", "description", "assignee", "reviewer", "due_date", "priority", "status"}
+TASK_REQUIRED_FIELDS = ("source_minutes_id", "title", "assignee", "due_date")
+TASK_EDITABLE_FIELDS = {"source_minutes_id", "title", "description", "assignee", "due_date", "priority", "status", "resolution"}
+
+def _task_progress(minutes_id, tasks=None):
+    related = [task for task in (tasks if tasks is not None else get_tasks({"source_minutes_id": minutes_id})) if task.get("source_minutes_id") == minutes_id]
+    completed = sum(task.get("status") == "completed" for task in related)
+    total = len(related)
+    return {"total_tasks": total, "completed_tasks": completed, "incomplete_tasks": total - completed, "approved_with_incomplete_tasks": total > completed}
 
 def _current_user(event):
     claims = event.get("requestContext", {}).get("authorizer", {}).get("jwt", {}).get("claims", {})
@@ -473,15 +485,15 @@ def _validate_task(data, require_all=True):
             return f"{field}は空欄にできません", [field]
     if "due_date" in data and not _valid_date(data["due_date"]):
         return "期限はYYYY-MM-DD形式で指定してください", ["due_date"]
-    if data.get("status", "not_started") not in TASK_STATUSES:
+    if "status" in data and data["status"] not in TASK_STATUSES:
         return "チケットの状態が正しくありません", ["status"]
     if data.get("priority", "normal") not in TASK_PRIORITIES:
         return "優先度が正しくありません", ["priority"]
     return None, []
 
 def handle_task_list(filters):
-    allowed = {key: filters[key] for key in ("project_id", "assignee", "status") if filters.get(key)}
-    if allowed.get("status") and allowed["status"] not in TASK_STATUSES:
+    allowed = {key: filters[key] for key in ("project_id", "assignee", "status", "source_minutes_id") if filters.get(key)}
+    if allowed.get("status") and allowed["status"] not in TASK_STATUSES | LEGACY_TASK_STATUSES:
         return create_response(400, {"message": "チケットの状態が正しくありません"})
     return create_response(200, {"tasks": get_tasks(allowed)})
 
@@ -495,11 +507,12 @@ def handle_task_save(body, event):
     message, fields = _validate_task(body)
     if message:
         return create_response(400, {"message": message, "fields": fields})
-    project = get_project_by_id(body["project_id"])
-    if not project:
-        return create_response(400, {"message": "指定されたプロジェクトが見つかりません"})
+    minutes = get_minutes_by_id(body["source_minutes_id"])
+    if not minutes:
+        return create_response(400, {"message": "指定された関連議事録が見つかりません"})
     data = dict(body)
-    data["project_name"] = project["project_name"]
+    data["project_id"] = minutes["project_id"]
+    data["project_name"] = minutes["project_name"]
     task = save_task(data, _current_user(event))
     return create_response(201, {"message": "チケットを登録しました", "task": task})
 
@@ -516,11 +529,12 @@ def handle_task_update(task_id, body):
     if message:
         return create_response(400, {"message": message, "fields": fields})
     updates = dict(body)
-    if "project_id" in updates:
-        project = get_project_by_id(updates["project_id"])
-        if not project:
-            return create_response(400, {"message": "指定されたプロジェクトが見つかりません"})
-        updates["project_name"] = project["project_name"]
+    if "source_minutes_id" in updates:
+        minutes = get_minutes_by_id(updates["source_minutes_id"])
+        if not minutes:
+            return create_response(400, {"message": "指定された関連議事録が見つかりません"})
+        updates["project_id"] = minutes["project_id"]
+        updates["project_name"] = minutes["project_name"]
     try:
         task = update_task(task_id, updates)
     except ClientError as error:

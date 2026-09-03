@@ -205,6 +205,9 @@ function displayMinutesList(minutes) {
             minutesItem.status
         );
 
+        const progress = minutesItem.task_progress || {};
+        addTextCell(row, progress.total_tasks ? `${progress.completed_tasks} / ${progress.total_tasks}件完了` : "チケットなし");
+
         addViewButton(
             row,
             "詳細",
