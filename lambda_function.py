@@ -572,8 +572,11 @@ def _task_progress(minutes_id, tasks=None):
 
 def _current_user(event):
     claims = event.get("requestContext", {}).get("authorizer", {}).get("jwt", {}).get("claims", {})
-    return (claims.get("email") or claims.get("cognito:username") or
-            claims.get("username") or claims.get("sub") or "不明なユーザー")
+    # 表示名を保存できる場合は優先する。既存のメールアドレスやsubの履歴は
+    # フロント側で短縮表示し、保存済みデータそのものは変更しない。
+    return (claims.get("name") or claims.get("display_name") or
+            claims.get("cognito:username") or claims.get("username") or
+            claims.get("email") or claims.get("sub") or "不明なユーザー")
 
 def _valid_date(value):
     try:
