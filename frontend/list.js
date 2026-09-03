@@ -173,9 +173,10 @@ function displayMinutesList(minutes) {
             minutesItem.project_id
         );
 
-        addTextCell(
+        addMeetingNameCell(
             row,
             minutesItem.meeting_name,
+            minutesItem.minutes_id,
             "meeting-name-cell"
         );
 
@@ -206,20 +207,24 @@ function displayMinutesList(minutes) {
 
         addViewButton(
             row,
-            "表示",
-            minutesItem.minutes_id,
-            "raw-section"
-        );
-
-        addViewButton(
-            row,
-            "表示",
-            minutesItem.minutes_id,
-            "ai-section"
+            "詳細",
+            minutesItem.minutes_id
         );
 
         tableBody.appendChild(row);
     }
+}
+
+// 会議名から詳細ページへ移動できるリンクを作成
+function addMeetingNameCell(row, value, minutesId, className) {
+    const cell = document.createElement("td");
+    const link = document.createElement("a");
+    link.textContent = value || "-";
+    link.href = `detail.html?id=${encodeURIComponent(minutesId)}`;
+    link.classList.add("minutes-number-link");
+    cell.classList.add(className);
+    cell.appendChild(link);
+    row.appendChild(cell);
 }
 
 
@@ -259,8 +264,7 @@ function addNumberCell(
             : "-";
 
     link.href =
-        `detail.html?id=${encodeURIComponent(minutesId)}` +
-        "#ai-section";
+        `detail.html?id=${encodeURIComponent(minutesId)}`;
 
     link.classList.add(
         "minutes-number-link"
@@ -308,8 +312,7 @@ function addStatusCell(row, status) {
 function addViewButton(
     row,
     label,
-    minutesId,
-    sectionId
+    minutesId
 ) {
     const cell = document.createElement("td");
     const button = document.createElement("button");
@@ -320,8 +323,7 @@ function addViewButton(
 
     button.addEventListener("click", () => {
         window.location.href =
-            `detail.html?id=${encodeURIComponent(minutesId)}` +
-            `#${sectionId}`;
+            `detail.html?id=${encodeURIComponent(minutesId)}`;
     });
 
     cell.appendChild(button);

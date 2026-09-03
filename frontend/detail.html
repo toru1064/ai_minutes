@@ -63,7 +63,7 @@
                         議事録詳細
                     </h1>
 
-                    <p id="meeting-project"></p>
+                    <p>議事録番号：<span id="minutes-number"></span></p>
                 </div>
             </div>
 
@@ -72,48 +72,20 @@
             </p>
 
             <div id="detail-content" hidden>
-                <!-- 承認状態と操作 -->
-                <section
-                    id="approval-area"
-                    class="workflow-bar"
-                >
-                    <div class="workflow-status">
-                        <span>現在の状態</span>
-
-                        <strong
-                            id="detail-status"
-                            class="status-badge"
-                        ></strong>
-                    </div>
-
-                    <div class="status-buttons">
-                        <button
-                            type="button"
-                            id="request-button"
-                            hidden
-                        >
-                            承認を申請
-                        </button>
-
-                        <button
-                            type="button"
-                            id="approve-button"
-                            hidden
-                        >
-                            承認
-                        </button>
-
-                        <button
-                            type="button"
-                            id="reject-button"
-                            hidden
-                        >
-                            差し戻し
-                        </button>
-                    </div>
-
-                    <p id="status-message"></p>
+                <!-- 議事録の基本情報 -->
+                <section class="detail-metadata">
+                    <dl><dt>プロジェクト</dt><dd id="meeting-project"></dd></dl>
+                    <dl><dt>会議日</dt><dd id="meeting-date"></dd></dl>
+                    <dl><dt>登録者</dt><dd id="registered-by"></dd></dl>
+                    <dl><dt>担当者</dt><dd id="assignee"></dd></dl>
+                    <dl><dt>承認者</dt><dd id="approver"></dd></dl>
+                    <dl><dt>現在の状態</dt><dd><strong id="detail-status" class="status-badge"></strong></dd></dl>
                 </section>
+
+                <div class="detail-tabs" role="tablist" aria-label="議事録の表示切り替え">
+                    <button type="button" class="detail-tab active" data-section="ai-section" role="tab">AI議事録</button>
+                    <button type="button" class="detail-tab" data-section="raw-section" role="tab">会議内容（原文）</button>
+                </div>
 
                 <!-- AI議事録 -->
                 <section
@@ -167,6 +139,27 @@
                     </div>
 
                     <pre id="raw-minutes"></pre>
+                </section>
+
+                <!-- 承認操作と履歴は詳細画面の下部に表示 -->
+                <section id="approval-area" class="workflow-bar">
+                    <h2>承認フロー</h2>
+                    <div class="status-buttons">
+                        <button type="button" id="request-button" hidden>承認を申請</button>
+                        <button type="button" id="approve-button" hidden>承認</button>
+                        <button type="button" id="reject-button" hidden>差し戻し</button>
+                    </div>
+                    <div id="rejection-area" class="rejection-area" hidden>
+                        <label for="rejection-reason">差し戻し理由（必須）</label>
+                        <textarea id="rejection-reason" rows="4"></textarea>
+                        <div class="rejection-actions">
+                            <button type="button" id="confirm-reject-button">差し戻しを実行</button>
+                            <button type="button" id="cancel-reject-button" class="secondary-button">キャンセル</button>
+                        </div>
+                    </div>
+                    <p id="status-message"></p>
+                    <h3>承認履歴</h3>
+                    <ol id="approval-history" class="approval-history"></ol>
                 </section>
             </div>
         </main>

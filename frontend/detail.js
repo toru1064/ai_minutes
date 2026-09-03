@@ -74,6 +74,11 @@ const rejectButton =
     document.getElementById(
         "reject-button"
     );
+const rejectionArea = document.getElementById("rejection-area");
+const rejectionReason = document.getElementById("rejection-reason");
+const confirmRejectButton = document.getElementById("confirm-reject-button");
+const cancelRejectButton = document.getElementById("cancel-reject-button");
+const detailTabs = document.querySelectorAll(".detail-tab");
 
 
 let currentUser = null;
@@ -162,9 +167,7 @@ async function initialize() {
 
 
 // 選択された内容だけを表示
-function displaySelectedSection() {
-    const sectionId =
-        window.location.hash.slice(1);
+function displaySelectedSection(sectionId = window.location.hash.slice(1)) {
 
     const aiSection =
         document.getElementById(
@@ -179,16 +182,17 @@ function displaySelectedSection() {
     if (sectionId === "raw-section") {
         aiSection.hidden = true;
         rawSection.hidden = false;
-        approvalArea.hidden = true;
     } else {
         aiSection.hidden = false;
         rawSection.hidden = true;
 
-        // AI議事録が未生成なら承認欄も非表示
-        approvalArea.hidden =
-            !hasAiMinutes(
-                currentMinutes
-            );
+    }
+
+    const selectedId = sectionId === "raw-section" ? "raw-section" : "ai-section";
+    for (const tab of detailTabs) {
+        const selected = tab.dataset.section === selectedId;
+        tab.classList.toggle("active", selected);
+        tab.setAttribute("aria-selected", String(selected));
     }
 }
 
@@ -205,6 +209,13 @@ function displayMinutes(minutes) {
                 "議事録詳細";
 
     displayProject(minutes);
+
+    document.getElementById("minutes-number").textContent =
+        minutes.minutes_number ? `#${minutes.minutes_number}` : "-";
+    document.getElementById("meeting-date").textContent = minutes.meeting_date || "-";
+    document.getElementById("registered-by").textContent = minutes.registered_by || "-";
+    document.getElementById("assignee").textContent = minutes.assignee || "-";
+    document.getElementById("approver").textContent = minutes.approver || "-";
 
     document
         .getElementById("summary")
@@ -237,6 +248,8 @@ function displayMinutes(minutes) {
     displayStatusButtons(
         minutes.status
     );
+
+    displayApprovalHistory(minutes.approval_history || []);
 }
 
 
@@ -253,9 +266,6 @@ function displayProject(minutes) {
         return;
     }
 
-    const label = document.createTextNode(
-        "プロジェクト："
-    );
     const link = document.createElement("a");
 
     link.href =
@@ -263,7 +273,6 @@ function displayProject(minutes) {
     link.textContent =
         minutes.project_name || "プロジェクト";
 
-    projectElement.appendChild(label);
     projectElement.appendChild(link);
 }
 
@@ -506,7 +515,7 @@ function disableStatusButtons() {
 
 
 // 議事録の状態を更新
-async function updateStatus(newStatus) {
+async function updateStatus(newStatus, reason = "") {
     statusMessage.textContent =
         "状態を更新しています...";
 
@@ -528,7 +537,8 @@ async function updateStatus(newStatus) {
                     },
 
                     body: JSON.stringify({
-                        status: newStatus
+                        status: newStatus,
+                        rejection_reason: reason
                     })
                 }
             );
@@ -546,13 +556,9 @@ async function updateStatus(newStatus) {
         currentMinutes =
             data.minutes;
 
-        displayStatus(
-            currentMinutes.status
-        );
-
-        displayStatusButtons(
-            currentMinutes.status
-        );
+        displayMinutes(currentMinutes);
+        rejectionArea.hidden = true;
+        rejectionReason.value = "";
 
         statusMessage.textContent =
             data.message;
@@ -566,6 +572,35 @@ async function updateStatus(newStatus) {
             currentMinutes.status
         );
     }
+}
+
+// 申請・承認・差し戻しの履歴を古い順に表示
+function displayApprovalHistory(history) {
+    const historyList = document.getElementById("approval-history");
+    historyList.innerHTML = "";
+    if (history.length === 0) {
+        addListItem(historyList, "承認履歴はありません");
+        return;
+    }
+    for (const entry of history) {
+        const actionLabels = {pending: "承認申請", approved: "承認", rejected: "差し戻し"};
+        const item = document.createElement("li");
+        const heading = document.createElement("strong");
+        heading.textContent = actionLabels[entry.action] || entry.action || "操作";
+        const details = document.createElement("span");
+        details.textContent = `${entry.operated_by || "不明なユーザー"}・${formatDateTime(entry.operated_at)}`;
+        item.append(heading, details);
+        if (entry.rejection_reason) {
+            const reason = document.createElement("p");
+            reason.textContent = `理由：${entry.rejection_reason}`;
+            item.appendChild(reason);
+        }
+        historyList.appendChild(item);
+    }
+}
+
+function formatDateTime(value) {
+    return value ? new Date(value).toLocaleString("ja-JP") : "日時不明";
 }
 
 
@@ -741,12 +776,33 @@ approveButton.addEventListener(
 // 差し戻し
 rejectButton.addEventListener(
     "click",
-    async () => {
-        await updateStatus(
-            "rejected"
-        );
+    () => {
+        rejectionArea.hidden = false;
+        rejectionReason.focus();
     }
 );
+
+confirmRejectButton.addEventListener("click", async () => {
+    const reason = rejectionReason.value.trim();
+    if (!reason) {
+        statusMessage.textContent = "差し戻し理由を入力してください";
+        rejectionReason.focus();
+        return;
+    }
+    await updateStatus("rejected", reason);
+});
+
+cancelRejectButton.addEventListener("click", () => {
+    rejectionArea.hidden = true;
+    rejectionReason.value = "";
+});
+
+for (const tab of detailTabs) {
+    tab.addEventListener("click", () => {
+        window.history.replaceState(null, "", `#${tab.dataset.section}`);
+        displaySelectedSection(tab.dataset.section);
+    });
+}
 
 
 // ログアウト
