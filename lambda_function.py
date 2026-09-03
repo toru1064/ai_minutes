@@ -13,6 +13,7 @@ from dynamodb_service import (
 )
 from task_service import (
     get_task_by_id,
+    get_ai_task,
     get_tasks,
     save_task,
     update_task
@@ -511,6 +512,14 @@ def handle_task_save(body, event):
     if not minutes:
         return create_response(400, {"message": "指定された関連議事録が見つかりません"})
     data = dict(body)
+    if data.get("source_type") == "ai":
+        if data.get("source_todo_index") is None:
+            return create_response(400, {"message": "AI TODO候補番号が必要です"})
+        duplicate = get_ai_task(body["source_minutes_id"], data["source_todo_index"])
+        if duplicate:
+            return create_response(409, {"message": "このAI TODO候補はチケット作成済みです", "task": duplicate})
+    else:
+        data["source_type"] = "manual"
     data["project_id"] = minutes["project_id"]
     data["project_name"] = minutes["project_name"]
     task = save_task(data, _current_user(event))

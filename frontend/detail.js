@@ -83,6 +83,7 @@ const detailTabs = document.querySelectorAll(".detail-tab");
 
 let currentUser = null;
 let currentMinutes = null;
+let relatedTasks = [];
 
 
 // AI議事録が作成済みか確認
@@ -149,10 +150,8 @@ async function initialize() {
         currentMinutes =
             data.minutes;
 
-        displayMinutes(
-            currentMinutes
-        );
         await loadRelatedTasks();
+        displayMinutes(currentMinutes);
 
         detailMessage.textContent = "";
         detailContent.hidden = false;
@@ -173,7 +172,7 @@ async function loadRelatedTasks() {
     const response = await fetch(`https://ba2lg9ckm9.execute-api.ap-northeast-1.amazonaws.com/tasks?source_minutes_id=${encodeURIComponent(minutesId)}`, {headers: {Authorization: `Bearer ${currentUser.access_token}`}});
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || "関連チケットの取得に失敗しました");
-    const tasks = data.tasks || [], completed = tasks.filter(task => task.status === "completed").length;
+    const tasks = data.tasks || []; relatedTasks = tasks; const completed = tasks.filter(task => task.status === "completed").length;
     document.getElementById("ticket-progress").textContent = tasks.length ? `${completed} / ${tasks.length}件完了` : "チケットなし";
     document.getElementById("tasks-message").textContent = tasks.length ? `全${tasks.length}件（完了${completed}件）` : "関連するチケットはありません";
     const tbody = document.getElementById("tasks-table-body"); tbody.innerHTML = "";
@@ -493,6 +492,7 @@ function displayStatusButtons(status) {
     requestButton.hidden = true;
     approveButton.hidden = true;
     rejectButton.hidden = true;
+    document.getElementById("approved-message").hidden = true;
 
     requestButton.disabled = false;
     approveButton.disabled = false;
@@ -512,11 +512,11 @@ function displayStatusButtons(status) {
         status === "rejected"
     ) {
         requestButton.hidden = false;
-    } else if (
-        status === "pending"
-    ) {
+    } else if (status === "pending") {
         approveButton.hidden = false;
         rejectButton.hidden = false;
+    } else if (status === "approved") {
+        document.getElementById("approved-message").hidden = false;
     }
 }
 
@@ -651,37 +651,24 @@ function displayDecisions(decisions) {
 
 // TODOを一覧表示
 function displayTodos(todos) {
-    const todosList =
-        document.getElementById(
-            "todos"
-        );
-
-    todosList.innerHTML = "";
-
-    if (todos.length === 0) {
-        addListItem(
-            todosList,
-            "記載なし"
-        );
-
-        return;
-    }
-
-    for (
-        const todo
-        of todos
-    ) {
-        const text =
-            `${todo.task}` +
-            `（担当：${todo.assignee || "未定"}、` +
-            `期限：${todo.deadline || "未定"}）`;
-
-        addListItem(
-            todosList,
-            text
-        );
-    }
+    const list = document.getElementById("todos");
+    const bulk = document.getElementById("create-selected-todos");
+    list.innerHTML = "";
+    bulk.hidden = todos.length === 0;
+    if (!todos.length) { addListItem(list, "記載なし"); return; }
+    todos.forEach((todo, index) => {
+        const made = relatedTasks.find(task => task.source_type === "ai" && String(task.source_todo_index) === String(index));
+        const li=document.createElement("li");li.className="todo-editor";li.dataset.index=index;
+        if(made){const a=document.createElement("a");a.href=`task_detail.html?id=${encodeURIComponent(made.task_id)}`;a.textContent=`チケット作成済み：#${made.task_number}`;li.appendChild(a);list.appendChild(li);return;}
+        const fields=[['title','件名',todo.task||'',true],['description','説明',todo.description||'',false],['assignee','担当者',todo.assignee||'',true],['due_date','期限',todo.deadline||'',true]];
+        const check=document.createElement("input");check.type="checkbox";check.checked=true;check.className="todo-select";li.append(check);
+        for(const [name,label,value,required] of fields){const l=document.createElement("label");l.textContent=label;const input=document.createElement("input");input.name=name;input.value=value;input.required=required;if(name==='due_date')input.type='date';l.appendChild(input);li.appendChild(l);}
+        const label=document.createElement("label");label.textContent="優先度";const select=document.createElement("select");select.name="priority";for(const [value,text] of [['low','低'],['normal','通常'],['high','高'],['urgent','緊急']]){const o=document.createElement('option');o.value=value;o.textContent=text;if(value==='normal')o.selected=true;select.appendChild(o);}label.appendChild(select);li.appendChild(label);
+        const button=document.createElement("button");button.type="button";button.textContent="チケットに登録";button.addEventListener("click",()=>createTodoTickets([li]));li.appendChild(button);list.appendChild(li);
+    });
 }
+async function createTodoTickets(items){const message=document.getElementById("todo-message"),results=[];for(const li of items){const payload={source_minutes_id:minutesId,source_type:"ai",source_todo_index:Number(li.dataset.index)};for(const input of li.querySelectorAll('[name]'))payload[input.name]=input.value;if(!payload.title||!payload.assignee||!payload.due_date){results.push(`#${Number(li.dataset.index)+1}: 必須項目を入力してください`);continue;}try{const response=await fetch("https://ba2lg9ckm9.execute-api.ap-northeast-1.amazonaws.com/tasks",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${currentUser.access_token}`},body:JSON.stringify(payload)}),data=await response.json();if(!response.ok)throw new Error(data.message);results.push(`${payload.title}: 成功（#${data.task.task_number}）`);}catch(error){results.push(`${payload.title}: 失敗（${error.message}）`);}}message.textContent=results.join(" / ");await loadRelatedTasks();displayTodos(currentMinutes.ai_minutes.todos||[]);}
+document.getElementById("create-selected-todos").addEventListener("click",()=>createTodoTickets([...document.querySelectorAll(".todo-editor")].filter(li=>li.querySelector(".todo-select")?.checked)));
 
 
 // リストへ項目を追加

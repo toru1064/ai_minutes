@@ -1176,3 +1176,10 @@ input:focus {
 .task-status-not_started { background: #eceff1; color: #455a64; }
 .task-status-in_progress { background: #fff3cd; color: #7a5b00; }
 .task-status-completed { background: #d9f2e3; color: #176b3a; }
+.task-filters { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin:16px 0; padding:16px; background:#fff; border:1px solid #d9e2ea; }
+.task-filters label, .todo-editor label { display:flex; flex-direction:column; gap:5px; }
+.detail-tabs-actions { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; }
+.detail-tabs-actions .workflow-bar { margin:0; padding:10px; }
+.todo-candidates { list-style:none; padding:0; }
+.todo-editor { display:grid; grid-template-columns:auto repeat(5,minmax(100px,1fr)) auto; gap:8px; align-items:end; padding:12px; border-bottom:1px solid #dde4e9; }
+@media(max-width:800px){.detail-tabs-actions{display:block}.detail-tabs-actions .workflow-bar{margin-top:10px}.todo-editor{grid-template-columns:1fr}}

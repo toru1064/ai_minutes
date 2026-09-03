@@ -97,11 +97,9 @@
                                 プロジェクト
                             </label>
 
-                            <select id="project-id" required>
-                                <option value="">
-                                    プロジェクトを選択してください
-                                </option>
-                            </select>
+                            <input id="project-search" list="project-options" autocomplete="off" placeholder="番号、プロジェクト名、責任者で検索" required>
+                            <datalist id="project-options"></datalist>
+                            <input id="project-id" type="hidden">
 
                             <small class="field-help">
                                 プロジェクトがない場合は、先に

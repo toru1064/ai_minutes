@@ -84,10 +84,10 @@
                     <dl><dt>現在の状態</dt><dd><strong id="detail-status" class="status-badge"></strong></dd></dl>
                 </section>
 
-                <div class="detail-tabs" role="tablist" aria-label="議事録の表示切り替え">
+                <div class="detail-tabs-actions"><div class="detail-tabs" role="tablist" aria-label="議事録の表示切り替え">
                     <button type="button" class="detail-tab active" data-section="ai-section" role="tab">AI議事録</button>
                     <button type="button" class="detail-tab" data-section="raw-section" role="tab">会議内容（原文）</button>
-                </div>
+                </div><section id="approval-area" class="workflow-bar compact"><div class="status-buttons"><button type="button" id="request-button" hidden>承認を申請</button><button type="button" id="approve-button" hidden>承認</button><button type="button" id="reject-button" hidden>差し戻し</button><strong id="approved-message" hidden>承認済み</strong></div><div id="rejection-area" class="rejection-area" hidden><label for="rejection-reason">差し戻し理由（必須）</label><textarea id="rejection-reason" rows="3"></textarea><div class="rejection-actions"><button type="button" id="confirm-reject-button">差し戻しを実行</button><button type="button" id="cancel-reject-button" class="secondary-button">キャンセル</button></div></div><p id="status-message"></p></section></div>
 
                 <!-- AI議事録 -->
                 <section
@@ -114,7 +114,7 @@
 
                     <div class="result-card">
                         <h3>AI抽出TODO候補</h3>
-                        <ul id="todos"></ul>
+                        <ul id="todos" class="todo-candidates"></ul><button type="button" id="create-selected-todos">選択したTODOをチケット化</button><p id="todo-message" aria-live="polite"></p>
                     </div>
                 </section>
 
@@ -149,25 +149,7 @@
                 </section>
 
                 <!-- 承認操作と履歴は詳細画面の下部に表示 -->
-                <section id="approval-area" class="workflow-bar">
-                    <h2>承認フロー</h2>
-                    <div class="status-buttons">
-                        <button type="button" id="request-button" hidden>承認を申請</button>
-                        <button type="button" id="approve-button" hidden>承認</button>
-                        <button type="button" id="reject-button" hidden>差し戻し</button>
-                    </div>
-                    <div id="rejection-area" class="rejection-area" hidden>
-                        <label for="rejection-reason">差し戻し理由（必須）</label>
-                        <textarea id="rejection-reason" rows="4"></textarea>
-                        <div class="rejection-actions">
-                            <button type="button" id="confirm-reject-button">差し戻しを実行</button>
-                            <button type="button" id="cancel-reject-button" class="secondary-button">キャンセル</button>
-                        </div>
-                    </div>
-                    <p id="status-message"></p>
-                    <h3>承認履歴</h3>
-                    <ol id="approval-history" class="approval-history"></ol>
-                </section>
+                <section class="workflow-bar approval-history-section"><h2>承認履歴</h2><ol id="approval-history" class="approval-history"></ol></section>
             </div>
         </main>
     </div>

@@ -106,11 +106,10 @@ def get_minutes():
         )
     ]
 
-    # 議事録番号を数値として大きい順に並べる
+    # 更新日時に影響されず、議事録番号の数値昇順で並べる
     return sorted(
         minutes_items,
         key=lambda item: int(item.get("minutes_number", 0)),
-        reverse=True
     )
 
 
