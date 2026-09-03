@@ -49,7 +49,7 @@ export function createDynamicFilters({fields, sorts, defaultSort, onApply}) {
         if(field.options){field.options.forEach(([v,l])=>value.add(new Option(l,v)));} else value.type=field.type==="date"?"date":field.type==="number"?"number":"text";
         value.value=state.value||"";
         const valueTo=document.createElement("input");valueTo.type="date";valueTo.className="filter-value-to";valueTo.value=state.valueTo||"";
-        const remove=document.createElement("button");remove.type="button";remove.className="filter-remove";remove.textContent="削除";
+        const remove=document.createElement("button");remove.type="button";remove.className="filter-remove";remove.textContent="×";remove.setAttribute("aria-label",`${field.label}フィルターを削除`);
         const visibility=()=>{const noValue=["empty","set"].includes(operator.value);value.hidden=noValue;valueTo.hidden=operator.value!=="between";};
         operator.addEventListener("change",visibility);remove.addEventListener("click",()=>{row.remove();refreshAdd();});
         row.append(enabled,name,operator,value,valueTo,remove);rows.appendChild(row);visibility();refreshAdd();

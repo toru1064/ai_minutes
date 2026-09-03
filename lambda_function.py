@@ -1,5 +1,5 @@
 import json
-from datetime import date
+from datetime import date, datetime, timezone
 
 from botocore.exceptions import ClientError
 
@@ -9,19 +9,19 @@ from dynamodb_service import (
     get_minutes_by_id,
     save_minutes,
     update_ai_minutes,
-    update_minutes_status
+    update_minutes_status, update_minutes
 )
 from task_service import (
     get_task_by_id,
     get_ai_task,
     get_tasks,
     save_task,
-    update_task
+    update_task, sync_tasks_project
 )
 from project_service import (
     get_project_by_id,
     get_projects,
-    save_project
+    save_project, update_project, sync_project_name
 )
 
 
@@ -54,12 +54,14 @@ def lambda_handler(event, context):
     if route_key == "GET /tasks/{task_id}":
         return handle_task_detail(path_parameters.get("task_id"))
     if route_key == "PATCH /tasks/{task_id}":
-        return handle_task_update(path_parameters.get("task_id"), body)
+        return handle_task_update(path_parameters.get("task_id"), body, event)
 
     # プロジェクトを1件取得
     if route_key == "GET /projects/{project_id}":
         project_id = path_parameters.get("project_id")
         return handle_project_detail(project_id)
+    if route_key == "PATCH /projects/{project_id}":
+        return handle_project_update(path_parameters.get("project_id"), body, event)
 
     # プロジェクト一覧を取得
     if route_key == "GET /projects":
@@ -79,6 +81,8 @@ def lambda_handler(event, context):
         minutes_id = path_parameters.get("minutes_id")
 
         return handle_update_status(minutes_id, body, event)
+    if route_key == "PATCH /minutes/{minutes_id}":
+        return handle_minutes_update(minutes_id, body, event)
 
     # IDを指定して議事録を1件取得
     if route_key == "GET /minutes/{minutes_id}":
@@ -367,6 +371,76 @@ def handle_project_save(body, event):
     )
 
 
+def _history(current, updates, user, raw_field=None):
+    changed = {}
+    for key, value in updates.items():
+        if current.get(key, "") != value:
+            changed[key] = ({"before": "（会議内容の原文）", "after": "会議内容の原文を変更"}
+                            if key == raw_field else {"before": current.get(key, ""), "after": value})
+    return changed, {"action": "edited", "operated_by": user,
+                     "operated_at": datetime.now(timezone.utc).isoformat(),
+                     "changed_fields": changed}
+
+
+def handle_project_update(project_id, body, event):
+    current = get_project_by_id(project_id)
+    if not current:
+        return create_response(404, {"message": "プロジェクトが見つかりません"})
+    allowed = {"project_name", "manager", "status", "start_date", "end_date", "description"}
+    if set(body) - allowed:
+        return create_response(400, {"message": "更新できない項目が含まれています"})
+    updates = {key: (value.strip() if isinstance(value, str) else value) for key, value in body.items()}
+    if any(not updates.get(key) for key in ("project_name", "manager", "start_date")):
+        return create_response(400, {"message": "必須項目を入力してください"})
+    if updates.get("status") not in {"active", "on_hold", "completed"}:
+        return create_response(400, {"message": "プロジェクトの状態が正しくありません"})
+    if not _valid_date(updates.get("start_date")) or (updates.get("end_date") and not _valid_date(updates["end_date"])):
+        return create_response(400, {"message": "日付が正しくありません"})
+    if updates.get("end_date") and updates["end_date"] < updates["start_date"]:
+        return create_response(400, {"message": "終了予定日は開始日以降にしてください"})
+    changed, history = _history(current, updates, _current_user(event))
+    if not changed:
+        return create_response(200, {"message": "変更はありません", "project": current})
+    try:
+        project = update_project(project_id, {k: updates[k] for k in changed}, history)
+        if "project_name" in changed:
+            sync_project_name(project_id, project["project_name"])
+            sync_tasks_project(project_id, project["project_name"])
+    except ClientError:
+        return create_response(500, {"message": "関連データの更新中に失敗しました。再度お試しください"})
+    return create_response(200, {"message": "更新しました", "project": project})
+
+
+def handle_minutes_update(minutes_id, body, event):
+    current = get_minutes_by_id(minutes_id)
+    if not current:
+        return create_response(404, {"message": "議事録が見つかりません"})
+    allowed = {"project_id", "meeting_name", "meeting_date", "assignee", "approver", "raw_minutes"}
+    if set(body) - allowed:
+        return create_response(400, {"message": "更新できない項目が含まれています"})
+    updates = {key: (value.strip() if isinstance(value, str) else value) for key, value in body.items()}
+    if any(not updates.get(key) for key in allowed):
+        return create_response(400, {"message": "必須項目を入力してください"})
+    if not _valid_date(updates["meeting_date"]):
+        return create_response(400, {"message": "会議日が正しくありません"})
+    project = get_project_by_id(updates["project_id"])
+    if not project:
+        return create_response(400, {"message": "指定されたプロジェクトが見つかりません"})
+    updates["project_name"] = project["project_name"]
+    raw_changed = updates["raw_minutes"] != current.get("raw_minutes", "")
+    if raw_changed:
+        updates["ai_minutes"] = {}
+    if raw_changed or current.get("status") in {"pending", "approved"}:
+        updates["status"] = "draft"
+    changed, history = _history(current, updates, _current_user(event), "raw_minutes")
+    if not changed:
+        return create_response(200, {"message": "変更はありません", "minutes": current})
+    updated = update_minutes(minutes_id, {k: updates[k] for k in changed}, history)
+    if "project_id" in changed:
+        sync_tasks_project(project["project_id"], project["project_name"], minutes_id)
+    return create_response(200, {"message": "更新しました", "minutes": updated})
+
+
 # 議事録の状態を更新
 def handle_update_status(minutes_id, body, event):
     if not minutes_id:
@@ -534,7 +608,7 @@ def handle_task_save(body, event):
     task = save_task(data, _current_user(event))
     return create_response(201, {"message": "チケットを登録しました", "task": task})
 
-def handle_task_update(task_id, body):
+def handle_task_update(task_id, body, event):
     current = get_task_by_id(task_id)
     if not current:
         return create_response(404, {"message": "チケットが見つかりません"})
@@ -553,8 +627,11 @@ def handle_task_update(task_id, body):
             return create_response(400, {"message": "指定された関連議事録が見つかりません"})
         updates["project_id"] = minutes["project_id"]
         updates["project_name"] = minutes["project_name"]
+    changed, history = _history(current, updates, _current_user(event))
+    if not changed:
+        return create_response(200, {"message": "変更はありません", "task": current})
     try:
-        task = update_task(task_id, updates)
+        task = update_task(task_id, {k: updates[k] for k in changed}, history)
     except ClientError as error:
         if error.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
             return create_response(404, {"message": "チケットが見つかりません"})

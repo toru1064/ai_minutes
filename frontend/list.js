@@ -140,79 +140,17 @@ function applyFilters(state) {
 // 議事録を表に表示
 function displayMinutesList(minutes) {
     tableBody.innerHTML = "";
-
-    if (allMinutes.length === 0) {
-        listMessage.textContent =
-            "登録された議事録はありません";
-        return;
-    }
-
-    if (minutes.length === 0) {
-        listMessage.textContent =
-            "条件に一致する議事録はありません";
-        return;
-    }
-
-    listMessage.textContent =
-        `${minutes.length}件を表示`;
-
-    for (const minutesItem of minutes) {
-        const row = document.createElement("tr");
-
-        addNumberCell(
-            row,
-            minutesItem.minutes_number,
-            minutesItem.minutes_id
-        );
-
-        addProjectCell(
-            row,
-            minutesItem.project_name,
-            minutesItem.project_id
-        );
-
-        addMeetingNameCell(
-            row,
-            minutesItem.meeting_name,
-            minutesItem.minutes_id,
-            "meeting-name-cell"
-        );
-
-        addTextCell(
-            row,
-            minutesItem.meeting_date
-        );
-
-        addTextCell(
-            row,
-            minutesItem.assignee
-        );
-
-        addTextCell(
-            row,
-            minutesItem.approver
-        );
-
-        addTextCell(
-            row,
-            formatDate(minutesItem.updated_at)
-        );
-
-        addStatusCell(
-            row,
-            minutesItem.status
-        );
-
-        const progress = minutesItem.task_progress || {};
-        addTextCell(row, progress.total_tasks ? `${progress.completed_tasks} / ${progress.total_tasks}件完了` : "チケットなし");
-
-        addViewButton(
-            row,
-            "詳細",
-            minutesItem.minutes_id
-        );
-
-        tableBody.appendChild(row);
+    if (!allMinutes.length) { listMessage.textContent = "登録された議事録はありません"; return; }
+    if (!minutes.length) { listMessage.textContent = "条件に一致する議事録はありません"; return; }
+    listMessage.textContent = `${minutes.length}件を表示`;
+    for (const item of minutes) {
+        const row=document.createElement("tr"), progress=item.task_progress||{};
+        addNumberCell(row,item.minutes_number,item.minutes_id);
+        addMeetingNameCell(row,item.meeting_name,item.minutes_id,"meeting-name-cell");
+        addTextCell(row,item.meeting_date); addStatusCell(row,item.status);
+        addTextCell(row,progress.total_tasks?`${progress.completed_tasks} / ${progress.total_tasks}件完了`:"チケットなし");
+        addTextCell(row,item.assignee); addTextCell(row,item.approver); addTextCell(row,formatDate(item.updated_at));
+        addProjectCell(row,item.project_name,item.project_id); tableBody.appendChild(row);
     }
 }
 

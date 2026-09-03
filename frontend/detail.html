@@ -66,7 +66,7 @@
                     </h1>
 
                     <p>議事録番号：<span id="minutes-number"></span></p>
-                </div>
+                </div><button id="minutes-edit-button" class="action-link">✎ 編集</button>
             </div>
 
             <p id="detail-message">
@@ -74,6 +74,8 @@
             </p>
 
             <div id="detail-content" hidden>
+                <form id="minutes-edit-form" class="form-card" hidden><div class="form-grid"><label>プロジェクト *<select id="edit-project" required></select></label><label>会議名 *<input id="edit-meeting-name" required></label><label>会議日 *<input id="edit-meeting-date" type="date" required></label><label>担当者 *<input id="edit-assignee" required></label><label>承認者 *<input id="edit-approver" required></label></div><label>会議内容の原文 *<textarea id="edit-raw" required rows="10"></textarea></label><div class="form-actions"><button id="minutes-save-button">保存</button><button type="button" id="minutes-cancel-button" class="secondary-button">キャンセル</button></div></form>
+                <section class="detail-panel"><h2>変更履歴</h2><ul id="minutes-change-history"><li>変更履歴はありません</li></ul></section>
                 <!-- 議事録の基本情報 -->
                 <section class="detail-metadata">
                     <dl><dt>プロジェクト</dt><dd id="meeting-project"></dd></dl>
@@ -114,7 +116,7 @@
 
                     <div class="result-card">
                         <h3>AI抽出TODO候補</h3>
-                        <ul id="todos" class="todo-candidates"></ul><button type="button" id="create-selected-todos">選択したTODOをチケット化</button><p id="todo-message" aria-live="polite"></p>
+                        <ul id="todos" class="todo-summary-list"></ul><a id="todo-ticket-link" class="primary-link compact-button" href="todo_to_tasks.html">AI抽出TODOからチケットを作成</a><p id="todo-message" aria-live="polite"></p>
                     </div>
                 </section>
 
