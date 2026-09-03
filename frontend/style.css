@@ -1181,5 +1181,29 @@ input:focus {
 .detail-tabs-actions { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; }
 .detail-tabs-actions .workflow-bar { margin:0; padding:10px; }
 .todo-candidates { list-style:none; padding:0; }
-.todo-editor { display:grid; grid-template-columns:auto repeat(5,minmax(100px,1fr)) auto; gap:8px; align-items:end; padding:12px; border-bottom:1px solid #dde4e9; }
-@media(max-width:800px){.detail-tabs-actions{display:block}.detail-tabs-actions .workflow-bar{margin-top:10px}.todo-editor{grid-template-columns:1fr}}
+.todo-card { margin:14px 0; padding:18px; border:1px solid #cbd9e3; border-left:5px solid #3f739b; border-radius:8px; background:#fff; overflow-wrap:anywhere; }
+.todo-card.is-created { border-left-color:#25834f; background:#eef9f2; }
+.todo-card-header { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:10px; }
+.todo-status { padding:4px 9px; border-radius:12px; background:#e9eff4; font-size:13px; }
+.is-created .todo-status { color:#176b3a; background:#d3eddd; }
+.todo-original { margin:18px 0 12px; color:#172f40; font-size:17px; font-weight:600; white-space:pre-wrap; }
+.todo-meta { margin-bottom:14px; color:#506674; white-space:normal; }
+.todo-edit-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:14px 0; padding:14px; background:#f5f8fa; }
+.todo-edit-fields label { display:flex; flex-direction:column; gap:5px; min-width:0; }
+.todo-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; }
+
+.search-select { position:relative; width:100%; min-width:0; }
+.search-select > input { width:100%; box-sizing:border-box; }
+.search-select-options { position:absolute; z-index:1000; top:calc(100% + 2px); left:0; right:0; width:100%; max-height:min(45vh,320px); overflow-y:auto; box-sizing:border-box; border:1px solid #9eb2c1; border-radius:4px; background:#fff; box-shadow:0 5px 15px rgba(20,45,62,.2); }
+.search-select-option { display:block; width:100%; padding:10px 12px; border:0; border-bottom:1px solid #e2e8ed; border-radius:0; background:#fff; color:#263b4a; text-align:left; white-space:normal; overflow-wrap:anywhere; }
+.search-select-option:hover,.search-select-option.active { background:#eaf3fa; }
+
+.dynamic-filters { margin:16px 0; padding:16px; border:1px solid #cfdbe4; border-radius:6px; background:#fff; }
+.dynamic-filters summary { margin:10px 0; color:#263b4a; font-weight:700; cursor:pointer; }
+.free-search { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+.filter-row { display:grid; grid-template-columns:auto minmax(120px,1fr) minmax(130px,1fr) minmax(150px,2fr) minmax(150px,2fr) auto; align-items:center; gap:9px; margin:8px 0; }
+.filter-row select,.filter-row input:not([type=checkbox]) { width:100%; min-width:0; box-sizing:border-box; }
+.filter-add-wrap { display:flex; justify-content:flex-end; margin:12px 0; }
+.filter-actions { display:flex; gap:10px; margin:12px 0; }
+.filter-remove { padding:7px 10px; background:#fff; color:#9b3030; border:1px solid #d6aaaa; }
+@media(max-width:800px){.detail-tabs-actions{display:block}.detail-tabs-actions .workflow-bar{margin-top:10px}.todo-edit-fields{grid-template-columns:1fr}.todo-actions{flex-direction:column}.todo-actions button{width:100%}.filter-row{grid-template-columns:auto 1fr}.filter-row>*:not(input[type=checkbox]){grid-column:2}.filter-remove{justify-self:start}.filter-add-wrap select{width:100%}}

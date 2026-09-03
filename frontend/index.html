@@ -86,55 +86,11 @@
                     </a>
                 </div>
 
-                <!-- 検索と状態の絞り込み -->
-                <section class="filter-panel">
-                    <input
-                        type="search"
-                        id="minutes-search"
-                        placeholder="会議名・担当者・承認者を検索"
-                    >
-
-                    <div class="status-tabs">
-                        <button
-                            type="button"
-                            class="status-tab active"
-                            data-status="all"
-                        >
-                            すべて
-                        </button>
-
-                        <button
-                            type="button"
-                            class="status-tab"
-                            data-status="draft"
-                        >
-                            下書き
-                        </button>
-
-                        <button
-                            type="button"
-                            class="status-tab"
-                            data-status="pending"
-                        >
-                            承認待ち
-                        </button>
-
-                        <button
-                            type="button"
-                            class="status-tab"
-                            data-status="approved"
-                        >
-                            承認済み
-                        </button>
-
-                        <button
-                            type="button"
-                            class="status-tab"
-                            data-status="rejected"
-                        >
-                            差し戻し
-                        </button>
-                    </div>
+                <section id="dynamic-filter-panel" class="dynamic-filters" aria-label="議事録の検索条件" hidden>
+                    <label class="free-search">フリーワード検索<input id="free-query" type="search" placeholder="番号、会議名、プロジェクト、担当者、承認者"></label>
+                    <details id="filter-details" open><summary>フィルタ</summary><div id="filter-rows"></div><div class="filter-add-wrap"><select id="filter-add"><option value="">フィルタ追加 ▼</option></select></div></details>
+                    <div class="filter-actions"><button type="button" id="apply-filters">適用</button><button type="button" id="clear-filters">クリア</button></div>
+                    <details id="option-details"><summary>オプション</summary><label>並べ替え：<select id="sort"></select></label></details>
                 </section>
 
                 <p id="list-message">

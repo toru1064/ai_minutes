@@ -462,8 +462,17 @@ TASK_EDITABLE_FIELDS = {"source_minutes_id", "title", "description", "assignee",
 def _task_progress(minutes_id, tasks=None):
     related = [task for task in (tasks if tasks is not None else get_tasks({"source_minutes_id": minutes_id})) if task.get("source_minutes_id") == minutes_id]
     completed = sum(task.get("status") == "completed" for task in related)
+    in_progress = sum(task.get("status") in {"in_progress", "review_pending", "rejected"} for task in related)
+    not_started = sum(task.get("status") == "not_started" for task in related)
     total = len(related)
-    return {"total_tasks": total, "completed_tasks": completed, "incomplete_tasks": total - completed, "approved_with_incomplete_tasks": total > completed}
+    return {
+        "total_tasks": total,
+        "not_started_tasks": not_started,
+        "in_progress_tasks": in_progress,
+        "completed_tasks": completed,
+        "incomplete_tasks": total - completed,
+        "approved_with_incomplete_tasks": total > completed,
+    }
 
 def _current_user(event):
     claims = event.get("requestContext", {}).get("authorizer", {}).get("jwt", {}).get("claims", {})
