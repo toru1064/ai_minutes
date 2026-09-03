@@ -14,6 +14,8 @@ const detailMessage = document.getElementById("detail-message");
 const detailContent = document.getElementById("detail-content");
 const tableBody = document.getElementById("minutes-table-body");
 const minutesMessage = document.getElementById("minutes-message");
+const tasksTableBody = document.getElementById("tasks-table-body");
+const tasksMessage = document.getElementById("tasks-message");
 
 
 async function initialize() {
@@ -50,6 +52,7 @@ async function initialize() {
 
         displayProject(data.project);
         displayMinutes(data.minutes || []);
+        await loadTasks(currentUser);
         detailMessage.textContent = "";
         detailContent.hidden = false;
     } catch (error) {
@@ -73,10 +76,30 @@ function displayProject(project) {
     status.textContent = formatProjectStatus(project.status);
     status.className = `status-badge project-status-${project.status}`;
 
+    document.getElementById("task-register-link").href =
+        `task_register.html?project_id=${encodeURIComponent(project.project_id)}`;
+
     document.getElementById("minutes-register-link").href =
         `register.html?project_id=${encodeURIComponent(project.project_id)}`;
 }
 
+
+async function loadTasks(currentUser) {
+    const url = `https://ba2lg9ckm9.execute-api.ap-northeast-1.amazonaws.com/tasks?project_id=${encodeURIComponent(projectId)}`;
+    const response = await fetch(url, {headers: {Authorization: `Bearer ${currentUser.access_token}`}});
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "チケットの取得に失敗しました");
+    const labels = {not_started: "未着手", in_progress: "対応中", review_pending: "確認待ち", completed: "完了", rejected: "差し戻し"};
+    const tasks = data.tasks || [];
+    tasksMessage.textContent = tasks.length ? `${tasks.length}件のチケット` : "関連するチケットはまだありません";
+    for (const task of tasks) {
+        const row = document.createElement("tr");
+        for (const value of [`#${task.task_number}`, task.title, task.assignee, task.due_date, labels[task.status]]) addTextCell(row, value);
+        const cell = document.createElement("td"), link = document.createElement("a");
+        link.href = `task_detail.html?id=${encodeURIComponent(task.task_id)}`; link.textContent = "表示"; link.className = "table-action link-button";
+        cell.appendChild(link); row.appendChild(cell); tasksTableBody.appendChild(row);
+    }
+}
 
 function displayMinutes(minutes) {
     tableBody.innerHTML = "";

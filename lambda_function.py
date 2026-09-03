@@ -1,4 +1,7 @@
 import json
+from datetime import date
+
+from botocore.exceptions import ClientError
 
 from bedrock_service import generate_minutes
 from dynamodb_service import (
@@ -7,6 +10,12 @@ from dynamodb_service import (
     save_minutes,
     update_ai_minutes,
     update_minutes_status
+)
+from task_service import (
+    get_task_by_id,
+    get_tasks,
+    save_task,
+    update_task
 )
 from project_service import (
     get_project_by_id,
@@ -35,6 +44,16 @@ def lambda_handler(event, context):
 
     route_key = event.get("routeKey", "")
     path_parameters = event.get("pathParameters") or {}
+
+    # チケットAPI
+    if route_key == "GET /tasks":
+        return handle_task_list(event.get("queryStringParameters") or {})
+    if route_key == "POST /tasks":
+        return handle_task_save(body, event)
+    if route_key == "GET /tasks/{task_id}":
+        return handle_task_detail(path_parameters.get("task_id"))
+    if route_key == "PATCH /tasks/{task_id}":
+        return handle_task_update(path_parameters.get("task_id"), body)
 
     # プロジェクトを1件取得
     if route_key == "GET /projects/{project_id}":
@@ -426,3 +445,86 @@ def handle_update_status(minutes_id, body, event):
             "minutes": updated_minutes
         }
     )
+
+
+TASK_STATUSES = {"not_started", "in_progress", "review_pending", "completed", "rejected"}
+TASK_PRIORITIES = {"low", "normal", "high", "urgent"}
+TASK_REQUIRED_FIELDS = ("project_id", "title", "assignee", "reviewer", "due_date")
+TASK_EDITABLE_FIELDS = {"project_id", "title", "description", "assignee", "reviewer", "due_date", "priority", "status"}
+
+def _current_user(event):
+    claims = event.get("requestContext", {}).get("authorizer", {}).get("jwt", {}).get("claims", {})
+    return claims.get("email") or claims.get("sub") or "不明なユーザー"
+
+def _valid_date(value):
+    try:
+        date.fromisoformat(value)
+        return True
+    except (TypeError, ValueError):
+        return False
+
+def _validate_task(data, require_all=True):
+    if require_all:
+        missing = [field for field in TASK_REQUIRED_FIELDS if not str(data.get(field, "")).strip()]
+        if missing:
+            return "必須項目が不足しています", missing
+    for field in TASK_REQUIRED_FIELDS:
+        if field in data and not str(data[field]).strip():
+            return f"{field}は空欄にできません", [field]
+    if "due_date" in data and not _valid_date(data["due_date"]):
+        return "期限はYYYY-MM-DD形式で指定してください", ["due_date"]
+    if data.get("status", "not_started") not in TASK_STATUSES:
+        return "チケットの状態が正しくありません", ["status"]
+    if data.get("priority", "normal") not in TASK_PRIORITIES:
+        return "優先度が正しくありません", ["priority"]
+    return None, []
+
+def handle_task_list(filters):
+    allowed = {key: filters[key] for key in ("project_id", "assignee", "status") if filters.get(key)}
+    if allowed.get("status") and allowed["status"] not in TASK_STATUSES:
+        return create_response(400, {"message": "チケットの状態が正しくありません"})
+    return create_response(200, {"tasks": get_tasks(allowed)})
+
+def handle_task_detail(task_id):
+    task = get_task_by_id(task_id)
+    if not task:
+        return create_response(404, {"message": "チケットが見つかりません"})
+    return create_response(200, {"task": task})
+
+def handle_task_save(body, event):
+    message, fields = _validate_task(body)
+    if message:
+        return create_response(400, {"message": message, "fields": fields})
+    project = get_project_by_id(body["project_id"])
+    if not project:
+        return create_response(400, {"message": "指定されたプロジェクトが見つかりません"})
+    data = dict(body)
+    data["project_name"] = project["project_name"]
+    task = save_task(data, _current_user(event))
+    return create_response(201, {"message": "チケットを登録しました", "task": task})
+
+def handle_task_update(task_id, body):
+    current = get_task_by_id(task_id)
+    if not current:
+        return create_response(404, {"message": "チケットが見つかりません"})
+    unknown = set(body) - TASK_EDITABLE_FIELDS
+    if unknown:
+        return create_response(400, {"message": "更新できない項目が含まれています", "fields": sorted(unknown)})
+    if not body:
+        return create_response(400, {"message": "更新内容を指定してください"})
+    message, fields = _validate_task(body, False)
+    if message:
+        return create_response(400, {"message": message, "fields": fields})
+    updates = dict(body)
+    if "project_id" in updates:
+        project = get_project_by_id(updates["project_id"])
+        if not project:
+            return create_response(400, {"message": "指定されたプロジェクトが見つかりません"})
+        updates["project_name"] = project["project_name"]
+    try:
+        task = update_task(task_id, updates)
+    except ClientError as error:
+        if error.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
+            return create_response(404, {"message": "チケットが見つかりません"})
+        raise
+    return create_response(200, {"message": "チケットを更新しました", "task": task})

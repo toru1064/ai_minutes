@@ -100,10 +100,10 @@ def get_minutes():
         )
     ]
 
-    # 更新日時が新しい順に並べる
+    # 議事録番号を数値として大きい順に並べる
     return sorted(
         minutes_items,
-        key=lambda item: item.get("updated_at", ""),
+        key=lambda item: int(item.get("minutes_number", 0)),
         reverse=True
     )
 
