@@ -52,15 +52,18 @@ def save_project(project_data, created_by):
 
 
 def get_projects():
-    response = table.scan(
-        FilterExpression="entity_type = :entity_type",
-        ExpressionAttributeValues={
-            ":entity_type": "project"
-        }
-    )
+    items = []
+    scan_args = {"FilterExpression": "entity_type = :entity_type",
+                 "ExpressionAttributeValues": {":entity_type": "project"}}
+    while True:
+        response = table.scan(**scan_args)
+        items.extend(response.get("Items", []))
+        if "LastEvaluatedKey" not in response:
+            break
+        scan_args["ExclusiveStartKey"] = response["LastEvaluatedKey"]
 
     return sorted(
-        response.get("Items", []),
+        items,
         key=lambda item: int(item.get("project_number", 0))
     )
 
@@ -81,3 +84,36 @@ def get_project_by_id(project_id):
         return None
 
     return item
+
+
+def update_project(project_id, updates, history_entry):
+    now = datetime.now(timezone.utc).isoformat()
+    names = {f"#{key}": key for key in updates}
+    values = {f":{key}": value for key, value in updates.items()}
+    names["#updated_at"] = "updated_at"
+    parts = [f"#{key} = :{key}" for key in updates]
+    parts += ["#updated_at = :updated_at",
+              "change_history = list_append(if_not_exists(change_history, :empty), :history)"]
+    values.update({":updated_at": now, ":empty": [], ":history": [history_entry]})
+    response = table.update_item(
+        Key={"minutes_id": f"{PROJECT_PREFIX}{project_id}"},
+        UpdateExpression="SET " + ", ".join(parts),
+        ExpressionAttributeNames=names,
+        ExpressionAttributeValues=values,
+        ConditionExpression="attribute_exists(minutes_id)", ReturnValues="ALL_NEW")
+    return response.get("Attributes")
+
+
+def sync_project_name(project_id, project_name):
+    """Denormalized names are updated across every paged scan result."""
+    scan_args = {}
+    while True:
+        response = table.scan(**scan_args)
+        for item in response.get("Items", []):
+            if item.get("entity_type") == "minutes" and item.get("project_id") == project_id:
+                table.update_item(Key={"minutes_id": item["minutes_id"]},
+                                  UpdateExpression="SET project_name = :name",
+                                  ExpressionAttributeValues={":name": project_name})
+        if "LastEvaluatedKey" not in response:
+            break
+        scan_args["ExclusiveStartKey"] = response["LastEvaluatedKey"]

@@ -188,3 +188,18 @@ def update_ai_minutes(minutes_id, ai_minutes):
     )
 
     return response.get("Attributes")
+
+
+def update_minutes(minutes_id, updates, history_entry):
+    now = datetime.now(timezone.utc).isoformat()
+    names = {f"#{key}": key for key in updates}
+    names["#updated_at"] = "updated_at"
+    values = {f":{key}": value for key, value in updates.items()}
+    values.update({":updated_at": now, ":empty": [], ":history": [history_entry]})
+    expression = [f"#{key} = :{key}" for key in updates]
+    expression += ["#updated_at = :updated_at", "change_history = list_append(if_not_exists(change_history, :empty), :history)"]
+    response = table.update_item(Key={"minutes_id": minutes_id},
+        UpdateExpression="SET " + ", ".join(expression),
+        ExpressionAttributeNames=names, ExpressionAttributeValues=values,
+        ConditionExpression="attribute_exists(minutes_id)", ReturnValues="ALL_NEW")
+    return response.get("Attributes")

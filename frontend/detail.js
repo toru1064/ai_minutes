@@ -84,6 +84,8 @@ const detailTabs = document.querySelectorAll(".detail-tab");
 let currentUser = null;
 let currentMinutes = null;
 let relatedTasks = [];
+let editInitial = "";
+let editDirty = false;
 
 
 // AI議事録が作成済みか確認
@@ -264,6 +266,8 @@ function displayMinutes(minutes) {
     );
 
     displayApprovalHistory(minutes.approval_history || []);
+    const history=document.getElementById("minutes-change-history"); history.innerHTML="";
+    for(const item of (minutes.change_history||[]).slice().reverse()){const li=document.createElement("li");li.textContent=`${new Date(item.operated_at).toLocaleString("ja-JP")} ${item.operated_by} が ${Object.keys(item.changed_fields||{}).join("、")} を編集`;history.appendChild(li);}if(!history.children.length)history.innerHTML="<li>変更履歴はありません</li>";
 }
 
 
@@ -651,33 +655,13 @@ function displayDecisions(decisions) {
 
 // TODOを一覧表示
 function displayTodos(todos) {
-    const list = document.getElementById("todos");
-    const bulk = document.getElementById("create-selected-todos");
-    list.innerHTML = "";
-    bulk.hidden = todos.length === 0;
-    if (!todos.length) { addListItem(list, "記載なし"); return; }
-    todos.forEach((todo, index) => {
-        const made = relatedTasks.find(task => task.source_type === "ai" && String(task.source_todo_index) === String(index));
-        const li=document.createElement("li");li.className=`todo-card${made?" is-created":""}`;li.dataset.index=index;
-        const header=document.createElement("div");header.className="todo-card-header";
-        const check=document.createElement("input");check.type="checkbox";check.checked=!made;check.disabled=Boolean(made);check.className="todo-select";check.setAttribute("aria-label",`TODO候補 #${index+1}を選択`);
-        const heading=document.createElement("strong");heading.textContent=`TODO候補 #${index+1}`;
-        const status=document.createElement("span");status.className="todo-status";status.textContent=made?"チケット作成済み":"未登録";header.append(check,heading,status);li.appendChild(header);
-        const original=document.createElement("p");original.className="todo-original";original.textContent=todo.task||todo.description||"（本文なし）";li.appendChild(original);
-        const meta=document.createElement("div");meta.className="todo-meta";meta.textContent=`担当：${todo.assignee||"未設定"}　期限：${todo.deadline||"未設定"}　優先度：通常`;li.appendChild(meta);
-        if(made){const a=document.createElement("a");a.href=`task_detail.html?id=${encodeURIComponent(made.task_id)}`;a.textContent=`チケット #${made.task_number} の詳細`;li.appendChild(a);list.appendChild(li);return;}
-        const fields=[['title','件名',todo.task||'',true],['description','説明',todo.description||'',false],['assignee','担当者',todo.assignee||'',true],['due_date','期限',todo.deadline||'',true]];
-        const editor=document.createElement("div");editor.className="todo-edit-fields";editor.hidden=true;
-        for(const [name,label,value,required] of fields){const l=document.createElement("label");l.textContent=label;const input=name==='description'?document.createElement("textarea"):document.createElement("input");input.name=name;input.value=value;input.required=required;if(name==='due_date')input.type='date';l.appendChild(input);editor.appendChild(l);}
-        const label=document.createElement("label");label.textContent="優先度";const select=document.createElement("select");select.name="priority";for(const [value,text] of [['low','低'],['normal','通常'],['high','高'],['urgent','緊急']]){const o=document.createElement('option');o.value=value;o.textContent=text;if(value==='normal')o.selected=true;select.appendChild(o);}label.appendChild(select);li.appendChild(label);
-        editor.appendChild(label);li.appendChild(editor);const actions=document.createElement("div");actions.className="todo-actions";
-        const edit=document.createElement("button");edit.type="button";edit.textContent="内容を編集";edit.addEventListener("click",()=>{editor.hidden=!editor.hidden;edit.textContent=editor.hidden?"内容を編集":"編集を閉じる";});
-        const button=document.createElement("button");button.type="button";button.className="todo-register";button.textContent="チケットに登録";button.addEventListener("click",()=>createTodoTickets([li]));actions.append(edit,button);li.appendChild(actions);list.appendChild(li);
-    });
+    const list=document.getElementById("todos"), link=document.getElementById("todo-ticket-link"); list.innerHTML="";
+    link.hidden=!todos.length;
+    if(!todos.length){addListItem(list,hasAiMinutes(currentMinutes)?"AI抽出TODOはありません":"AI議事録を作成するとTODOが表示されます");return;}
+    const unregistered=todos.filter((_,i)=>!relatedTasks.some(t=>t.source_type==="ai"&&String(t.source_todo_index)===String(i))).length;
+    link.href=`todo_to_tasks.html?id=${encodeURIComponent(minutesId)}`; link.textContent=`AI抽出TODOからチケットを作成（未登録 ${unregistered}件）`;
+    todos.forEach((todo,index)=>{const made=relatedTasks.find(t=>t.source_type==="ai"&&String(t.source_todo_index)===String(index)),li=document.createElement("li"),title=document.createElement("strong"),meta=document.createElement("div");title.textContent=todo.task||todo.description||"（本文なし）";meta.className="todo-meta";meta.textContent=`担当：${todo.assignee||"未設定"}　期限：${todo.deadline||"未設定"}`;li.append(title,meta);if(made){const a=document.createElement("a");a.href=`task_detail.html?id=${encodeURIComponent(made.task_id)}`;a.textContent=`チケット作成済み：#${made.task_number}`;li.appendChild(a);}list.appendChild(li);});
 }
-async function createTodoTickets(items){const message=document.getElementById("todo-message"),bulk=document.getElementById("create-selected-todos"),results=[];bulk.disabled=true;for(const li of items){const buttons=li.querySelectorAll("button");buttons.forEach(b=>b.disabled=true);const payload={source_minutes_id:minutesId,source_type:"ai",source_todo_index:Number(li.dataset.index)};for(const input of li.querySelectorAll('[name]'))payload[input.name]=input.value;if(!payload.title||!payload.assignee||!payload.due_date){results.push(`#${Number(li.dataset.index)+1}: 失敗（必須項目を入力してください）`);buttons.forEach(b=>b.disabled=false);continue;}try{const response=await fetch("https://ba2lg9ckm9.execute-api.ap-northeast-1.amazonaws.com/tasks",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${currentUser.access_token}`},body:JSON.stringify(payload)}),data=await response.json();if(!response.ok)throw new Error(data.message);results.push(`候補 #${Number(li.dataset.index)+1}: 成功（チケット #${data.task.task_number}）`);}catch(error){results.push(`候補 #${Number(li.dataset.index)+1}: 失敗（${error.message}）`);buttons.forEach(b=>b.disabled=false);}}message.textContent=results.join(" / ");bulk.disabled=false;await loadRelatedTasks();displayTodos(currentMinutes.ai_minutes.todos||[]);}
-document.getElementById("create-selected-todos").addEventListener("click",()=>createTodoTickets([...document.querySelectorAll(".todo-card:not(.is-created)")].filter(li=>li.querySelector(".todo-select")?.checked)));
-
 
 // リストへ項目を追加
 function addListItem(list, text) {
@@ -816,6 +800,15 @@ for (const tab of detailTabs) {
     });
 }
 
+
+
+const editForm=document.getElementById("minutes-edit-form");
+const editValues=()=>({project_id:document.getElementById("edit-project").value,meeting_name:document.getElementById("edit-meeting-name").value.trim(),meeting_date:document.getElementById("edit-meeting-date").value,assignee:document.getElementById("edit-assignee").value.trim(),approver:document.getElementById("edit-approver").value.trim(),raw_minutes:document.getElementById("edit-raw").value.trim()});
+document.getElementById("minutes-edit-button").addEventListener("click",async()=>{try{const response=await fetch("https://ba2lg9ckm9.execute-api.ap-northeast-1.amazonaws.com/projects",{headers:{Authorization:`Bearer ${currentUser.access_token}`}}),data=await response.json();if(!response.ok)throw new Error(data.message);const select=document.getElementById("edit-project");select.innerHTML="";(data.projects||[]).forEach(p=>select.add(new Option(`#${p.project_number} ${p.project_name}`,p.project_id)));select.value=currentMinutes.project_id;document.getElementById("edit-meeting-name").value=currentMinutes.meeting_name||"";document.getElementById("edit-meeting-date").value=currentMinutes.meeting_date||"";document.getElementById("edit-assignee").value=currentMinutes.assignee||"";document.getElementById("edit-approver").value=currentMinutes.approver||"";document.getElementById("edit-raw").value=currentMinutes.raw_minutes||"";editInitial=JSON.stringify(editValues());editDirty=false;editForm.hidden=false;document.getElementById("minutes-edit-button").hidden=true;}catch(error){detailMessage.textContent=error.message;}});
+editForm.addEventListener("input",()=>editDirty=JSON.stringify(editValues())!==editInitial);
+document.getElementById("minutes-cancel-button").addEventListener("click",()=>{if(editDirty&&!confirm("未保存の変更を破棄しますか？"))return;editDirty=false;editForm.hidden=true;document.getElementById("minutes-edit-button").hidden=false;});
+editForm.addEventListener("submit",async event=>{event.preventDefault();const payload=editValues(),rawChanged=payload.raw_minutes!==currentMinutes.raw_minutes;if(currentMinutes.status==="pending"||currentMinutes.status==="approved"){if(!confirm("保存すると承認状態が下書きへ戻ります。続けますか？"))return;}if(rawChanged&&!confirm("原文を変更するとAI議事録が消去され、再作成が必要です。続けますか？"))return;const button=document.getElementById("minutes-save-button");button.disabled=true;try{const response=await fetch(`${apiUrl}/${encodeURIComponent(minutesId)}`,{method:"PATCH",headers:{"Content-Type":"application/json",Authorization:`Bearer ${currentUser.access_token}`},body:JSON.stringify(payload)}),data=await response.json();if(!response.ok)throw new Error(data.message);currentMinutes=data.minutes;editDirty=false;editForm.hidden=true;document.getElementById("minutes-edit-button").hidden=false;displayMinutes(currentMinutes);detailMessage.textContent="更新しました";}catch(error){detailMessage.textContent=error.message;}finally{button.disabled=false;}});
+window.addEventListener("beforeunload",event=>{if(editDirty){event.preventDefault();event.returnValue="";}});
 
 // ログアウト
 detailLogoutButton.addEventListener(

@@ -77,14 +77,18 @@ def get_ai_task(minutes_id, todo_index):
                  and str(task.get("source_todo_index")) == index), None)
 
 
-def update_task(task_id, updates):
+def update_task(task_id, updates, history_entry=None):
     updated = dict(updates)
     updated["updated_at"] = datetime.now(timezone.utc).isoformat()
     names = {f"#{key}": key for key in updated}
     values = {f":{key}": value for key, value in updated.items()}
-    expression = "SET " + ", ".join(
+    expression_parts = [
         f"#{key} = :{key}" for key in updated
-    )
+    ]
+    if history_entry:
+        values.update({":empty": [], ":history": [history_entry]})
+        expression_parts.append("change_history = list_append(if_not_exists(change_history, :empty), :history)")
+    expression = "SET " + ", ".join(expression_parts)
     response = table.update_item(
         Key={"task_id": task_id},
         UpdateExpression=expression,
@@ -94,3 +98,12 @@ def update_task(task_id, updates):
         ReturnValues="ALL_NEW"
     )
     return response.get("Attributes")
+
+
+def sync_tasks_project(project_id, project_name, source_minutes_id=None):
+    for task in get_tasks():
+        matches = task.get("source_minutes_id") == source_minutes_id if source_minutes_id else task.get("project_id") == project_id
+        if matches:
+            table.update_item(Key={"task_id": task["task_id"]},
+                UpdateExpression="SET project_id = :id, project_name = :name",
+                ExpressionAttributeValues={":id": project_id, ":name": project_name})
