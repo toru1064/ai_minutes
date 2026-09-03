@@ -152,6 +152,7 @@ async function initialize() {
         displayMinutes(
             currentMinutes
         );
+        await loadRelatedTasks();
 
         detailMessage.textContent = "";
         detailContent.hidden = false;
@@ -165,6 +166,20 @@ async function initialize() {
     }
 }
 
+
+
+async function loadRelatedTasks() {
+    document.getElementById("task-register-link").href = `task_register.html?minutes_id=${encodeURIComponent(minutesId)}`;
+    const response = await fetch(`https://ba2lg9ckm9.execute-api.ap-northeast-1.amazonaws.com/tasks?source_minutes_id=${encodeURIComponent(minutesId)}`, {headers: {Authorization: `Bearer ${currentUser.access_token}`}});
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "関連チケットの取得に失敗しました");
+    const tasks = data.tasks || [], completed = tasks.filter(task => task.status === "completed").length;
+    document.getElementById("ticket-progress").textContent = tasks.length ? `${completed} / ${tasks.length}件完了` : "チケットなし";
+    document.getElementById("tasks-message").textContent = tasks.length ? `全${tasks.length}件（完了${completed}件）` : "関連するチケットはありません";
+    const tbody = document.getElementById("tasks-table-body"); tbody.innerHTML = "";
+    const labels = {not_started:"未着手", in_progress:"進行中", completed:"完了", review_pending:"進行中（旧状態）", rejected:"進行中（旧状態）"};
+    for (const task of tasks) { const row=document.createElement("tr"); for(const value of [`#${task.task_number}`,task.title,task.assignee,task.due_date]) {const cell=document.createElement("td");cell.textContent=value||"-";row.appendChild(cell);} const statusCell=document.createElement("td"), badge=document.createElement("span");badge.className=`status-badge task-status-${task.status === "completed" ? "completed" : task.status === "not_started" ? "not_started" : "in_progress"}`;badge.textContent=labels[task.status]||task.status;statusCell.appendChild(badge);row.appendChild(statusCell);const action=document.createElement("td"),link=document.createElement("a");link.href=`task_detail.html?id=${encodeURIComponent(task.task_id)}`;link.textContent="表示";action.appendChild(link);row.appendChild(action);tbody.appendChild(row); }
+}
 
 // 選択された内容だけを表示
 function displaySelectedSection(sectionId = window.location.hash.slice(1)) {
@@ -766,6 +781,8 @@ requestButton.addEventListener(
 approveButton.addEventListener(
     "click",
     async () => {
+        const incomplete = currentMinutes.task_progress?.incomplete_tasks || 0;
+        if (incomplete && !window.confirm(`未完了のチケットが${incomplete}件あります。このまま議事録を承認しますか？`)) return;
         await updateStatus(
             "approved"
         );

@@ -85,8 +85,14 @@ def save_minutes(minutes_data, registered_by):
 
 # 議事録一覧をDynamoDBから取得
 def get_minutes():
-    response = table.scan()
-    items = response.get("Items", [])
+    items = []
+    scan_args = {}
+    while True:
+        response = table.scan(**scan_args)
+        items.extend(response.get("Items", []))
+        if "LastEvaluatedKey" not in response:
+            break
+        scan_args["ExclusiveStartKey"] = response["LastEvaluatedKey"]
 
     # 番号管理用の項目を一覧から除外
     minutes_items = [
@@ -120,7 +126,7 @@ def get_minutes_by_id(minutes_id):
 
 
 # 議事録の状態を更新
-def update_minutes_status(minutes_id, status, operated_by, rejection_reason=None):
+def update_minutes_status(minutes_id, status, operated_by, rejection_reason=None, task_progress=None):
     updated_at = datetime.now(
         timezone.utc
     ).isoformat()
@@ -133,6 +139,8 @@ def update_minutes_status(minutes_id, status, operated_by, rejection_reason=None
 
     if rejection_reason:
         history_entry["rejection_reason"] = rejection_reason
+    if status == "approved" and task_progress:
+        history_entry.update(task_progress)
 
     response = table.update_item(
         Key={

@@ -26,15 +26,15 @@ def save_task(task_data, created_by):
         "task_number": str(get_next_task_number()),
         "project_id": task_data["project_id"],
         "project_name": task_data["project_name"],
+        "source_minutes_id": task_data["source_minutes_id"],
         "title": task_data["title"].strip(),
         "description": task_data.get("description", "").strip(),
         "assignee": task_data["assignee"].strip(),
-        "reviewer": task_data["reviewer"].strip(),
+        "resolution": task_data.get("resolution", "").strip(),
         "due_date": task_data["due_date"],
         "priority": task_data.get("priority", "normal"),
         "status": "not_started",
         "source_type": "manual",
-        "source_minutes_id": "",
         "created_by": created_by,
         "created_at": now,
         "updated_at": now
@@ -55,10 +55,10 @@ def get_tasks(filters=None):
 
     filters = filters or {}
     tasks = [item for item in items if item.get("task_id") != COUNTER_ID]
-    for field in ("project_id", "assignee", "status"):
+    for field in ("project_id", "assignee", "status", "source_minutes_id"):
         if filters.get(field):
             tasks = [item for item in tasks if item.get(field) == filters[field]]
-    return sorted(tasks, key=lambda item: int(item.get("task_number", 0)), reverse=True)
+    return sorted(tasks, key=lambda item: int(item.get("task_number", 0)))
 
 
 def get_task_by_id(task_id):
