@@ -6,6 +6,8 @@ const FIELD_LABELS = {
     resolution: "処置結果", raw_minutes: "会議内容（原文）", ai_minutes: "AI議事録", project_id: "プロジェクト"
 };
 const STATUS_LABELS = {draft:"下書き",pending:"承認待ち",approved:"承認済み",rejected:"差し戻し",active:"進行中",on_hold:"保留",completed:"完了",not_started:"未着手",in_progress:"進行中"};
+// Cognito の sub は UUID のバージョンに限定せず、表示用途では形式だけを確認する。
+const UUID_FORMAT = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 
 export function normalizeUserProfile(userOrProfile = {}) {
     if (!userOrProfile || typeof userOrProfile !== "object") return {};
@@ -52,7 +54,7 @@ function firstText(...values) {
 }
 
 function isUuid(value) {
-    return /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(value);
+    return UUID_FORMAT.test(value);
 }
 
 function displayValue(field, value) {
