@@ -1159,3 +1159,17 @@ input:focus {
         grid-column: auto;
     }
 }
+
+/* チケット画面 */
+.form-card { padding: 24px; background: #fff; border: 1px solid #d9e2ea; border-radius: 10px; }
+.heading-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+@media (max-width: 600px) {
+    .sidebar { position: static; width: 100%; height: auto; }
+    .sidebar-menu { flex-direction: row; overflow-x: auto; padding: 4px; }
+    .sidebar-menu a { flex: 0 0 auto; padding: 10px; border-left: 0; border-bottom: 3px solid transparent; }
+    .sidebar-menu a.active { border-bottom-color: #3f739b; }
+    .app-layout { display: block; }
+    .main-content { margin-left: 0; padding: 18px 12px; }
+    .page-heading { flex-direction: column; }
+    .table-wrapper { overflow-x: auto; }
+}
