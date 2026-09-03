@@ -4,6 +4,7 @@ import {
     login,
     logout
 } from "./auth.js";
+import {createDynamicFilters, matchesFilter} from "./dynamic-filters.js";
 
 
 // 議事録一覧を取得するAPI
@@ -23,14 +24,17 @@ const listMessage =
     document.getElementById("list-message");
 const tableBody =
     document.getElementById("minutes-table-body");
-const searchInput =
-    document.getElementById("minutes-search");
-const statusTabs =
-    document.querySelectorAll(".status-tab");
-
 let currentUser = null;
 let allMinutes = [];
-let selectedStatus = "all";
+const fields = {
+    number:{label:"議事録番号",type:"number",get:m=>m.minutes_number}, meeting:{label:"会議名",type:"text",get:m=>m.meeting_name},
+    project:{label:"プロジェクト",type:"select",get:m=>m.project_id}, assignee:{label:"担当者",type:"select",get:m=>m.assignee},
+    approver:{label:"承認者",type:"select",get:m=>m.approver}, status:{label:"承認状態",type:"select",get:m=>m.status,options:[["draft","下書き"],["pending","承認待ち"],["approved","承認済み"],["rejected","差し戻し"]]},
+    progress:{label:"チケット進捗",type:"select",get:ticketProgress,options:[["none","チケットなし"],["not_started","未着手"],["in_progress","進行中"],["completed","すべて完了"]]},
+    ai:{label:"AI議事録の作成状況",type:"select",get:m=>m.ai_minutes?"created":"none",options:[["none","未作成"],["created","作成済み"]]}, date:{label:"会議日",type:"date",get:m=>m.meeting_date}
+};
+const sorts=[["number_asc","議事録番号：昇順"],["number_desc","議事録番号：降順"],["date_desc","会議日：新しい順"],["date_asc","会議日：古い順"],["updated_desc","更新日：新しい順"],["updated_asc","更新日：古い順"],["progress","チケット進捗"]];
+function ticketProgress(m){const p=m.task_progress||{},total=Number(p.total_tasks||0),done=Number(p.completed_tasks||0),started=Number(p.in_progress_tasks||0);if(!total)return"none";if(done===total)return"completed";if(started>0||done>0)return"in_progress";return"not_started";}
 
 
 // 画面を開いたときの処理
@@ -96,7 +100,9 @@ async function loadMinutes() {
 
         allMinutes = data.minutes || [];
 
-        applyFilters();
+        fields.project.options=[...new Map(allMinutes.filter(m=>m.project_id).map(m=>[m.project_id,[m.project_id,m.project_name]])).values()];
+        for(const key of ["assignee","approver"])fields[key].options=[...new Set(allMinutes.map(m=>m[key]).filter(Boolean))].map(v=>[v,v]);
+        createDynamicFilters({fields,sorts,defaultSort:"number_asc",onApply:applyFilters});
     } catch (error) {
         console.error(error);
         listMessage.textContent = error.message;
@@ -105,18 +111,11 @@ async function loadMinutes() {
 
 
 // 検索条件と状態で絞り込む
-function applyFilters() {
-    const keyword =
-        searchInput.value.trim().toLowerCase();
-
-    const filteredMinutes = allMinutes.filter(
-        minutesItem => {
-            const matchesStatus =
-                selectedStatus === "all" ||
-                minutesItem.status === selectedStatus;
-
-            const searchableText = [
-                minutesItem.minutes_id,
+export function filterAndSortMinutes(items, {query, filters, sort}) {
+    const keyword = query.trim().toLocaleLowerCase("ja").replace(/^#/, "");
+    const result = items.filter(minutesItem => {
+            const number=String(minutesItem.minutes_number||"");
+            const searchableText = [number,`#${number}`,
                 minutesItem.project_name,
                 minutesItem.meeting_name,
                 minutesItem.meeting_date,
@@ -127,15 +126,14 @@ function applyFilters() {
                 .join(" ")
                 .toLowerCase();
 
-            const matchesKeyword =
-                !keyword ||
-                searchableText.includes(keyword);
-
-            return matchesStatus && matchesKeyword;
-        }
-    );
-
-    displayMinutesList(filteredMinutes);
+            return (!keyword || searchableText.includes(keyword)) && filters.every(row=>matchesFilter(fields[row.field].get(minutesItem),row));
+        });
+    const direction=sort.endsWith("desc")?-1:1;
+    result.sort((a,b)=>{if(sort.startsWith("number"))return direction*(Number(a.minutes_number)-Number(b.minutes_number));if(sort.startsWith("date"))return direction*String(a.meeting_date||"").localeCompare(String(b.meeting_date||""));if(sort.startsWith("updated"))return direction*String(a.updated_at||"").localeCompare(String(b.updated_at||""));return ["none","not_started","in_progress","completed"].indexOf(ticketProgress(a))-["none","not_started","in_progress","completed"].indexOf(ticketProgress(b))||Number(a.minutes_number)-Number(b.minutes_number);});
+    return result;
+}
+function applyFilters(state) {
+    displayMinutesList(filterAndSortMinutes(allMinutes,state));
 }
 
 
@@ -363,28 +361,6 @@ function formatDate(value) {
             minute: "2-digit"
         }
     );
-}
-
-
-// 検索欄へ入力したとき
-searchInput.addEventListener("input", () => {
-    applyFilters();
-});
-
-
-// 状態タブを押したとき
-for (const tab of statusTabs) {
-    tab.addEventListener("click", () => {
-        selectedStatus = tab.dataset.status;
-
-        for (const otherTab of statusTabs) {
-            otherTab.classList.remove("active");
-        }
-
-        tab.classList.add("active");
-
-        applyFilters();
-    });
 }
 
 
