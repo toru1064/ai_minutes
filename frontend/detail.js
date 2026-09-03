@@ -2,7 +2,7 @@ import {
     getCurrentUser,
     logout
 } from "./auth.js";
-import {displayUser, renderChangeHistory} from "./display-utils.js";
+import {displayUser, profileDisplayName, renderChangeHistory} from "./display-utils.js";
 
 
 // API GatewayのURL
@@ -126,7 +126,7 @@ async function initialize() {
         }
 
         detailUserStatus.textContent =
-            `ログイン中：${currentUser.profile.name||currentUser.profile.display_name||currentUser.profile.preferred_username||currentUser.profile["cognito:username"]||currentUser.profile.username||(currentUser.profile.email||"").split("@")[0]||"ユーザー"}`;
+            `ログイン中：${profileDisplayName(currentUser.profile)}`;
 
         const response =
             await fetch(
