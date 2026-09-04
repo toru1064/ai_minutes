@@ -63,25 +63,28 @@ export function setProfileDisplay(element, userOrProfile = {}, prefix = "") {
     element.onkeydown = event => { if (event.key === "Enter") element.click(); };
 }
 
-export function taskHistory(task = {}) {
-    const history = Array.isArray(task.change_history) ? [...task.change_history] : [];
-    if (!history.some(entry => entry?.action === "created")) {
-        history.unshift({action: "created", operated_at: task.created_at,
-            operated_by: task.created_by || task.registered_by, changed_fields: {}, synthetic: true});
-    }
-    return history;
+export function sortChangeHistory(history = []) {
+    return history.map((entry, index) => ({entry, index, time: Date.parse(entry?.operated_at)}))
+        .sort((a, b) => {
+            const aValid = Number.isFinite(a.time), bValid = Number.isFinite(b.time);
+            if (aValid !== bValid) return aValid ? -1 : 1;
+            return (aValid ? a.time - b.time : 0) || a.index - b.index;
+        }).map(item => item.entry);
 }
 
-export function minutesHistory(minutes = {}) {
-    const history = Array.isArray(minutes.change_history) ? [...minutes.change_history] : [];
-    if (!history.some(entry => entry?.action === "created" && (!entry.entity_type || entry.entity_type === "minutes"))) {
-        history.unshift({action: "created", entity_type: "minutes",
-            operated_at: minutes.created_at || minutes.registered_at,
-            operated_by: minutes.created_by || minutes.registered_by,
-            changed_fields: {}, synthetic: true});
+function entityHistory(entity, entityType) {
+    const history = Array.isArray(entity.change_history) ? [...entity.change_history] : [];
+    if (!history.some(entry => entry?.action === "created" && (!entry.entity_type || entry.entity_type === entityType))) {
+        history.push({action: "created", entity_type: entityType,
+            operated_at: entity.created_at || entity.registered_at,
+            operated_by: entity.created_by || entity.registered_by, changed_fields: {}, synthetic: true});
     }
-    return history;
+    return sortChangeHistory(history);
 }
+
+export function taskHistory(task = {}) { return entityHistory(task, "task"); }
+export function minutesHistory(minutes = {}) { return entityHistory(minutes, "minutes"); }
+export function projectHistory(project = {}) { return entityHistory(project, "project"); }
 
 export function profileEmail(apiProfile = {}, oidcUser = {}) {
     return firstText(apiProfile.email, normalizeUserProfile(oidcUser).email, "未取得");
@@ -144,15 +147,15 @@ export function historyOperationLabels(entry) {
 }
 
 export function renderChangeHistory(container, history = [], userOrProfile = {}) {
+    history = sortChangeHistory(history);
     container.innerHTML = "";
     const outer = document.createElement("details"); outer.className = "change-history";
     const summary = document.createElement("summary"); summary.textContent = `変更履歴（${history.length}件）`; outer.appendChild(summary);
     if (!history.length) { const p=document.createElement("p"); p.textContent="変更履歴はありません"; outer.appendChild(p); container.appendChild(outer); return; }
-    const created = history.filter(entry => entry?.action === "created");
-    const changes = history.filter(entry => entry?.action !== "created").reverse();
-    [...created, ...changes].forEach(entry => {
+    history.forEach(entry => {
         const item=document.createElement("details"), heading=document.createElement("summary");
-        const action = entry.action === "created" ? `　${entry.entity_type === "minutes" ? "議事録" : "チケット"}を作成` : "";
+        const entityLabel = {minutes:"議事録", project:"プロジェクト", task:"チケット"}[entry.entity_type] || "チケット";
+        const action = entry.action === "created" ? `　${entityLabel}を作成` : "";
         setUserDisplay(heading, entry.operated_by, userOrProfile, `${entry.operated_at ? formatLocalDateTime(entry.operated_at) : "日時不明"}　`);
         heading.append(action);
         item.appendChild(heading);

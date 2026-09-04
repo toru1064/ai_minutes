@@ -15,3 +15,5 @@ export function dueDateState(task,today=localDateKey()){
  const end=new Date(`${today}T00:00:00`);end.setDate(end.getDate()+7);
  return task.due_date<=localDateKey(end)?{kind:"soon",label:"期限間近"}:null;
 }
+export function filterTasksByCompletion(tasks,showCompleted){return showCompleted?tasks:tasks.filter(task=>task.status!=="completed");}
+export function syncCompletedButtons(buttons,showCompleted){for(const button of buttons)button.setAttribute("aria-pressed",String((button.dataset.value==="1")===showCompleted));}
