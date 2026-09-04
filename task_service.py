@@ -37,7 +37,11 @@ def save_task(task_data, created_by):
         "source_type": task_data.get("source_type", "manual"),
         "created_by": created_by,
         "created_at": now,
-        "updated_at": now
+        "updated_at": now,
+        "change_history": [{
+            "action": "created", "operated_by": created_by,
+            "operated_at": now, "changed_fields": {}
+        }]
     }
     if task_data.get("source_todo_index") is not None:
         item["source_todo_index"] = str(task_data["source_todo_index"])

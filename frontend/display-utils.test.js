@@ -4,7 +4,7 @@ import test from "node:test";
 import {readdir, readFile} from "node:fs/promises";
 import {fileURLToPath} from "node:url";
 
-import {displayUser, normalizeUserProfile, profileDisplayName, setProfileDisplay, setUserDisplay} from "./display-utils.js";
+import {displayUser, normalizeUserProfile, profileDisplayName, setProfileDisplay, setUserDisplay, taskHistory} from "./display-utils.js";
 
 const sub = "12345678-1234-1234-1234-123456789abc";
 const cognitoSub = "d7e43ae8-1021-7059-2016-9886ec5da042";
@@ -35,10 +35,20 @@ test("実際のCognito subをプロフィール直接形式で短縮し、大文
 });
 
 test("表示名の優先順とemailのローカル部へのフォールバック", () => {
+    assert.equal(profileDisplayName({display_name: "中野", name: "別名"}), "中野");
     assert.equal(profileDisplayName({sub, preferred_username: "preferred", "cognito:username": "cognito", username: "user", email: "mail@example.com"}), "preferred");
     assert.equal(profileDisplayName({sub, "cognito:username": "cognito", username: "user", email: "mail@example.com"}), "cognito");
     assert.equal(profileDisplayName({sub, username: "user", email: "mail@example.com"}), "user");
     assert.equal(profileDisplayName({sub, email: "mail@example.com"}), "mail");
+});
+
+test("既存チケットの作成履歴を補完し、保存済みなら二重表示しない", () => {
+    const legacy = taskHistory({created_at: "2026-01-01T00:00:00+00:00", created_by: sub});
+    assert.equal(legacy.length, 1);
+    assert.equal(legacy[0].action, "created");
+    assert.equal(legacy[0].synthetic, true);
+    const stored = {action: "created", operated_by: sub};
+    assert.deepEqual(taskHistory({change_history: [stored]}), [stored]);
 });
 
 test("UUID形式のCognito usernameを除外してemailを表示する", () => {

@@ -24,6 +24,7 @@ from project_service import (
     get_projects,
     save_project, update_project, sync_project_name
 )
+from user_service import get_user, list_users, save_user
 
 
 # API Gatewayへ返すレスポンスを作成
@@ -60,6 +61,14 @@ def lambda_handler(event, context):
     minutes_id = path_parameters.get("minutes_id")
     project_id = path_parameters.get("project_id")
     task_id = path_parameters.get("task_id")
+
+    # ユーザーAPI（固定パスを完全一致させ、/users/meを一覧より先に判定）
+    if route_key == "GET /users/me":
+        return handle_user_me(event)
+    if route_key == "PUT /users/me":
+        return handle_user_save(body, event)
+    if route_key == "GET /users":
+        return handle_user_list(event)
 
     # チケットAPI
     if route_key == "GET /tasks":
@@ -115,6 +124,50 @@ def lambda_handler(event, context):
         404,
         {"message": "APIルートが見つかりません"}
     )
+
+
+def _claims(event):
+    return event.get("requestContext", {}).get("authorizer", {}).get("jwt", {}).get("claims", {})
+
+
+def _authenticated_claims(event):
+    claims = _claims(event)
+    return claims if claims.get("sub") else None
+
+
+def handle_user_me(event):
+    claims = _authenticated_claims(event)
+    if not claims:
+        return create_response(401, {"message": "認証情報にsubがありません"})
+    item = get_user(claims["sub"])
+    if item:
+        return create_response(200, {"user": item, "registered": True})
+    username = claims.get("preferred_username") or claims.get("cognito:username") or claims.get("username", "")
+    initial_name = claims.get("name") or (claims.get("email", "").split("@", 1)[0]) or username
+    return create_response(200, {"user": {"user_id": claims["sub"], "display_name": initial_name,
+        "email": claims.get("email", ""), "username": username}, "registered": False})
+
+
+def handle_user_save(body, event):
+    claims = _authenticated_claims(event)
+    if not claims:
+        return create_response(401, {"message": "認証情報にsubがありません"})
+    if set(body) - {"display_name"}:
+        return create_response(400, {"message": "display_name以外は更新できません"})
+    value = body.get("display_name")
+    if not isinstance(value, str) or not value.strip():
+        return create_response(400, {"message": "表示名を入力してください"})
+    display_name = value.strip()
+    if len(display_name) > 50:
+        return create_response(400, {"message": "表示名は50文字以内で入力してください"})
+    return create_response(200, {"message": "プロフィールを保存しました",
+        "user": save_user(claims["sub"], display_name, claims), "registered": True})
+
+
+def handle_user_list(event):
+    if not _authenticated_claims(event):
+        return create_response(401, {"message": "認証情報にsubがありません"})
+    return create_response(200, {"users": list_users()})
 
 
 # 議事録を1件取得

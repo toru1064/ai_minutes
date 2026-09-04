@@ -28,6 +28,7 @@ export function displayUser(value, userOrProfile = {}) {
 export function profileDisplayName(userOrProfile = {}) {
     const profile = normalizeUserProfile(userOrProfile);
     return firstText(
+        humanReadableName(profile.display_name),
         humanReadableName(profile.name),
         humanReadableName(profile.preferred_username),
         humanReadableName(profile["cognito:username"]),
@@ -51,6 +52,20 @@ export function setUserDisplay(element, value, userOrProfile = {}, prefix = "") 
 export function setProfileDisplay(element, userOrProfile = {}, prefix = "") {
     if (!element) return;
     element.textContent = `${prefix}${profileDisplayName(userOrProfile)}`;
+    element.classList?.add("profile-link");
+    element.setAttribute?.("role", "link");
+    element.setAttribute?.("tabindex", "0");
+    element.onclick = () => { window.location.href = "profile.html"; };
+    element.onkeydown = event => { if (event.key === "Enter") element.click(); };
+}
+
+export function taskHistory(task = {}) {
+    const history = Array.isArray(task.change_history) ? [...task.change_history] : [];
+    if (!history.some(entry => entry?.action === "created")) {
+        history.unshift({action: "created", operated_at: task.created_at,
+            operated_by: task.created_by || task.registered_by, changed_fields: {}, synthetic: true});
+    }
+    return history;
 }
 
 function abbreviatedUser(value) {
@@ -90,9 +105,13 @@ export function renderChangeHistory(container, history = [], userOrProfile = {})
     const outer = document.createElement("details"); outer.className = "change-history";
     const summary = document.createElement("summary"); summary.textContent = `変更履歴（${history.length}件）`; outer.appendChild(summary);
     if (!history.length) { const p=document.createElement("p"); p.textContent="変更履歴はありません"; outer.appendChild(p); container.appendChild(outer); return; }
-    [...history].reverse().forEach(entry => {
+    const created = history.filter(entry => entry?.action === "created");
+    const changes = history.filter(entry => entry?.action !== "created").reverse();
+    [...created, ...changes].forEach(entry => {
         const item=document.createElement("details"), heading=document.createElement("summary");
+        const action = entry.action === "created" ? "　チケットを作成" : "";
         setUserDisplay(heading, entry.operated_by, userOrProfile, `${entry.operated_at ? new Date(entry.operated_at).toLocaleString("ja-JP") : "日時不明"}　`);
+        heading.append(action);
         item.appendChild(heading);
         Object.entries(entry.changed_fields || {}).forEach(([field, change]) => {
             const row=document.createElement("div"); row.className="history-change";
