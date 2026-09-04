@@ -41,6 +41,44 @@ test("表示名の優先順とemailのローカル部へのフォールバック
     assert.equal(profileDisplayName({sub, email: "mail@example.com"}), "mail");
 });
 
+test("UUID形式のCognito usernameを除外してemailを表示する", () => {
+    const user = {
+        profile: {
+            sub: cognitoSub,
+            "cognito:username": cognitoSub,
+            email: "sample@example.com"
+        }
+    };
+
+    assert.equal(profileDisplayName(user), "sample");
+    assert.equal(displayUser(cognitoSub, user), "sample");
+    assert.equal(profileDisplayName(user.profile), "sample");
+    assert.equal(displayUser(cognitoSub, user.profile), "sample");
+});
+
+test("通常のCognito usernameは従来どおり表示する", () => {
+    assert.equal(profileDisplayName({sub: cognitoSub, "cognito:username": "山田 太郎", email: "sample@example.com"}), "山田 太郎");
+});
+
+test("UUID形式のCognito usernameだけならsubを短縮表示する", () => {
+    assert.equal(profileDisplayName({sub: cognitoSub, "cognito:username": cognitoSub}), "ユーザー（d7e43ae8…）");
+});
+
+test("通常のnameをemailより優先し、UUID形式のnameは除外する", () => {
+    assert.equal(profileDisplayName({sub: cognitoSub, name: "表示名", email: "sample@example.com"}), "表示名");
+    assert.equal(profileDisplayName({sub: cognitoSub, name: cognitoSub, email: "sample@example.com"}), "sample");
+});
+
+test("すべてのユーザー名クレームからUUIDを除外する", () => {
+    assert.equal(profileDisplayName({
+        sub: cognitoSub,
+        name: cognitoSub,
+        preferred_username: cognitoSub,
+        "cognito:username": cognitoSub,
+        username: cognitoSub
+    }), "ユーザー（d7e43ae8…）");
+});
+
 test("subだけの場合と他人のUUIDは完全なUUIDを表示しない", () => {
     assert.equal(profileDisplayName({profile: {sub}}), "ユーザー（12345678…）");
     assert.equal(displayUser("abcdefab-1234-1234-1234-abcdefabcdef", {profile: {sub}}), "ユーザー（abcdefab…）");
