@@ -28,11 +28,11 @@ export function displayUser(value, userOrProfile = {}) {
 export function profileDisplayName(userOrProfile = {}) {
     const profile = normalizeUserProfile(userOrProfile);
     return firstText(
-        profile.name,
-        profile.preferred_username,
-        profile["cognito:username"],
-        profile.username,
-        emailLocalPart(profile.email),
+        humanReadableName(profile.name),
+        humanReadableName(profile.preferred_username),
+        humanReadableName(profile["cognito:username"]),
+        humanReadableName(profile.username),
+        humanReadableName(emailLocalPart(profile.email)),
         abbreviatedUser(profile.sub),
         "ユーザー"
     );
@@ -62,6 +62,13 @@ function abbreviatedUser(value) {
 function emailLocalPart(value) {
     const text = String(value || "").trim();
     return text.includes("@") ? text.slice(0, text.indexOf("@")) : text;
+}
+
+// 認証用の UUID は profile/sub に保持したまま、表示名の候補からだけ除外する。
+function humanReadableName(value) {
+    if (typeof value !== "string") return "";
+    const text = value.trim();
+    return text && !isUuid(text) ? text : "";
 }
 
 function firstText(...values) {
