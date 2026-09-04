@@ -4,7 +4,7 @@ import test from "node:test";
 import {readdir, readFile} from "node:fs/promises";
 import {fileURLToPath} from "node:url";
 
-import {displayUser, normalizeUserProfile, profileDisplayName, setProfileDisplay, setUserDisplay, taskHistory} from "./display-utils.js";
+import {displayUser, historyOperationLabels, minutesHistory, normalizeUserProfile, profileDisplayName, profileEmail, profileUsername, setProfileDisplay, setUserDisplay, taskHistory} from "./display-utils.js";
 
 const sub = "12345678-1234-1234-1234-123456789abc";
 const cognitoSub = "d7e43ae8-1021-7059-2016-9886ec5da042";
@@ -49,6 +49,30 @@ test("既存チケットの作成履歴を補完し、保存済みなら二重�
     assert.equal(legacy[0].synthetic, true);
     const stored = {action: "created", operated_by: sub};
     assert.deepEqual(taskHistory({change_history: [stored]}), [stored]);
+});
+
+test("既存議事録の作成履歴を補完し、保存済みなら二重表示しない", () => {
+    const legacy = minutesHistory({created_at: "2026-01-01T00:00:00+00:00", registered_by: "担当者"});
+    assert.equal(legacy.length, 1);
+    assert.deepEqual(legacy[0], {action:"created", entity_type:"minutes", operated_at:"2026-01-01T00:00:00+00:00", operated_by:"担当者", changed_fields:{}, synthetic:true});
+    const stored = {action:"created", entity_type:"minutes", operated_by:"担当者"};
+    assert.deepEqual(minutesHistory({change_history:[stored]}), [stored]);
+});
+
+test("プロフィール連絡先はAPIを優先しOIDCへ安全にフォールバックする", () => {
+    const oidc = {profile:{email:"oidc@example.com", username:"normal-user", "cognito:username":cognitoSub}};
+    assert.equal(profileEmail({}, oidc), "oidc@example.com");
+    assert.equal(profileEmail({email:"api@example.com"}, oidc), "api@example.com");
+    assert.equal(profileUsername({}, oidc), "normal-user");
+    assert.equal(profileUsername({username:cognitoSub}, {profile:{username:cognitoSub}}), "未取得");
+});
+
+test("原文とAI議事録の履歴を内容ではなく操作名へ変換する", () => {
+    assert.deepEqual(historyOperationLabels({operations:["raw_minutes_changed","ai_minutes_cleared"]}), ["会議内容（原文）を変更", "AI議事録をクリア（再作成が必要）"]);
+    assert.deepEqual(historyOperationLabels({action:"ai_created"}), ["AI議事録を作成"]);
+    assert.deepEqual(historyOperationLabels({action:"ai_recreated"}), ["AI議事録を再作成"]);
+    assert.deepEqual(historyOperationLabels({changed_fields:{ai_minutes:{before:{old:true},after:{new:true}}}}), ["AI議事録を更新"]);
+    assert.deepEqual(historyOperationLabels({changed_fields:{ai_minutes:{before:{old:true},after:{}}}}), ["AI議事録をクリア（再作成が必要）"]);
 });
 
 test("UUID形式のCognito usernameを除外してemailを表示する", () => {
@@ -134,4 +158,13 @@ test("画面スクリプトはユーザー識別子をDOMへ直接設定しな�
         const source = await readFile(new URL(file, import.meta.url), "utf8");
         assert.doesNotMatch(source, directDomWrite, `${file} にユーザー識別子の直接表示があります`);
     }
+});
+
+test("プロフィール保存は表示名だけを送信し、成功後に編集状態を閉じる", async () => {
+    const source = await readFile(new URL("profile.js", import.meta.url), "utf8");
+    assert.match(source, /JSON\.stringify\(\{display_name:name\}\)/);
+    assert.doesNotMatch(source, /JSON\.stringify\(\{[^}]*email/);
+    assert.match(source, /dirty=false;editing\(false\);message\.textContent="プロフィールを保存しました。"/);
+    assert.match(source, /save-button"\)\.disabled=true/);
+    assert.match(source, /save-button"\)\.disabled=false/);
 });

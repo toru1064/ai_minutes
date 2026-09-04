@@ -2,7 +2,7 @@ import {
     getCurrentUser,
     logout
 } from "./auth.js";
-import {setProfileDisplay, setUserDisplay, renderChangeHistory} from "./display-utils.js";
+import {setProfileDisplay, setUserDisplay, renderChangeHistory, minutesHistory} from "./display-utils.js";
 
 
 // API GatewayのURL
@@ -268,7 +268,7 @@ function displayMinutes(minutes) {
     );
 
     displayApprovalHistory(minutes.approval_history || []);
-    renderChangeHistory(document.getElementById("minutes-change-history"), minutes.change_history || [], currentUser);
+    renderChangeHistory(document.getElementById("minutes-change-history"), minutesHistory(minutes), currentUser);
 }
 
 

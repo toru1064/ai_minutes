@@ -1230,3 +1230,31 @@ input:focus {
 .profile-values { display: grid; grid-template-columns: 10rem 1fr; gap: 18px; }
 .profile-values dt, .profile-values dd { margin: 0; }
 #edit-button { align-self: flex-start; }
+
+/* 全画面共通の操作コントロール（Redmine風） */
+:root { --action-height:36px; --action-radius:4px; --action-font-size:14px; }
+button,.primary-link,.compact-button,.secondary-button {
+    box-sizing:border-box; width:auto; min-width:0; min-height:var(--action-height); margin:0;
+    padding:7px 13px; border:1px solid #246b99; border-radius:var(--action-radius);
+    font-size:var(--action-font-size); line-height:1.35; font-weight:600; cursor:pointer;
+}
+button,.primary-link,.compact-button { background:#2f77a8; color:#fff; }
+.primary-link,.compact-button,.secondary-button { display:inline-flex; align-items:center; justify-content:center; text-decoration:none; }
+button:hover,.primary-link:hover,.compact-button:hover { background:#255f87; }
+.secondary-button,#clear-filters,#cancel-button,#minutes-cancel-button,#raw-cancel-button,#cancel-reject-button {
+    border-color:#aebbc4; background:#fff; color:#365568;
+}
+.secondary-button:hover,#clear-filters:hover,#cancel-button:hover,#minutes-cancel-button:hover,#raw-cancel-button:hover,#cancel-reject-button:hover { background:#edf2f5; }
+.action-link { width:auto; min-height:36px; margin:0; padding:6px 8px; border:0; background:transparent; color:#23658f; font-size:14px; font-weight:500; }
+.action-link:hover { background:#edf4f8; color:#174b6c; text-decoration:underline; }
+#reject-button,#confirm-reject-button,.danger-button { border:1px solid #c74343; background:#fff; color:#a42020; }
+#reject-button:hover,#confirm-reject-button:hover,.danger-button:hover { background:#fff0f0; }
+button:disabled,.primary-link[aria-disabled="true"] { border-color:#aeb8be; background:#d8dee2; color:#6c7981; cursor:not-allowed; opacity:.8; }
+button:focus-visible,a:focus-visible,.profile-link:focus-visible { outline:3px solid #f2a900; outline-offset:2px; }
+.form-actions { justify-content:flex-end; }
+.search-select-option,.detail-tab { min-height:40px; }
+@media(max-width:600px){
+    :root { --action-height:44px; }
+    .form-actions { flex-direction:row; justify-content:flex-end; align-items:center; }
+    .form-actions button,.form-actions a,.todo-actions button { width:auto!important; }
+}

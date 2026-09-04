@@ -68,6 +68,29 @@ export function taskHistory(task = {}) {
     return history;
 }
 
+export function minutesHistory(minutes = {}) {
+    const history = Array.isArray(minutes.change_history) ? [...minutes.change_history] : [];
+    if (!history.some(entry => entry?.action === "created" && (!entry.entity_type || entry.entity_type === "minutes"))) {
+        history.unshift({action: "created", entity_type: "minutes",
+            operated_at: minutes.created_at || minutes.registered_at,
+            operated_by: minutes.created_by || minutes.registered_by,
+            changed_fields: {}, synthetic: true});
+    }
+    return history;
+}
+
+export function profileEmail(apiProfile = {}, oidcUser = {}) {
+    return firstText(apiProfile.email, normalizeUserProfile(oidcUser).email, "未取得");
+}
+
+export function profileUsername(apiProfile = {}, oidcUser = {}) {
+    const oidc = normalizeUserProfile(oidcUser);
+    return firstText(humanReadableName(apiProfile.preferred_username),
+        humanReadableName(apiProfile["cognito:username"]), humanReadableName(apiProfile.username),
+        humanReadableName(oidc.preferred_username), humanReadableName(oidc["cognito:username"]),
+        humanReadableName(oidc.username), "未取得");
+}
+
 function abbreviatedUser(value) {
     const text = String(value || "").trim();
     if (!text) return "不明なユーザー";
@@ -96,8 +119,24 @@ function isUuid(value) {
 
 function displayValue(field, value) {
     if (value === undefined || value === null || value === "") return "未設定";
-    if (field === "raw_minutes") return "（原文は履歴に表示しません）";
+    if (field === "raw_minutes" || field === "ai_minutes") return "";
     return STATUS_LABELS[value] || String(value);
+}
+
+export function historyOperationLabels(entry) {
+    const labels = [], operations = Array.isArray(entry.operations) ? entry.operations : [];
+    if (operations.includes("raw_minutes_changed")) labels.push("会議内容（原文）を変更");
+    if (operations.includes("ai_minutes_cleared")) labels.push("AI議事録をクリア（再作成が必要）");
+    if (entry.action === "ai_created") labels.push("AI議事録を作成");
+    if (entry.action === "ai_recreated") labels.push("AI議事録を再作成");
+    const changed = entry.changed_fields || {};
+    if (changed.raw_minutes && !operations.includes("raw_minutes_changed")) labels.push("会議内容（原文）を変更");
+    if (changed.ai_minutes && !operations.includes("ai_minutes_cleared")) {
+        const after = changed.ai_minutes?.after;
+        labels.push(!after || (typeof after === "object" && !Object.keys(after).length)
+            ? "AI議事録をクリア（再作成が必要）" : "AI議事録を更新");
+    }
+    return labels;
 }
 
 export function renderChangeHistory(container, history = [], userOrProfile = {}) {
@@ -109,15 +148,16 @@ export function renderChangeHistory(container, history = [], userOrProfile = {})
     const changes = history.filter(entry => entry?.action !== "created").reverse();
     [...created, ...changes].forEach(entry => {
         const item=document.createElement("details"), heading=document.createElement("summary");
-        const action = entry.action === "created" ? "　チケットを作成" : "";
+        const action = entry.action === "created" ? `　${entry.entity_type === "minutes" ? "議事録" : "チケット"}を作成` : "";
         setUserDisplay(heading, entry.operated_by, userOrProfile, `${entry.operated_at ? new Date(entry.operated_at).toLocaleString("ja-JP") : "日時不明"}　`);
         heading.append(action);
         item.appendChild(heading);
-        Object.entries(entry.changed_fields || {}).forEach(([field, change]) => {
+        historyOperationLabels(entry).forEach(text => { const row=document.createElement("div"); row.className="history-change history-operation"; row.textContent=text; item.appendChild(row); });
+        Object.entries(entry.changed_fields || {}).filter(([field]) => !["raw_minutes", "ai_minutes"].includes(field)).forEach(([field, change]) => {
             const row=document.createElement("div"); row.className="history-change";
             const label=document.createElement("strong"); label.textContent=FIELD_LABELS[field] || field;
             const values=document.createElement("span"); values.textContent=`${displayValue(field, change?.before)} → ${displayValue(field, change?.after)}`;
-            if (field === "status") { const note=document.createElement("em"); note.textContent="システム変更"; label.append(" ",note); }
+            if ((entry.system_changed_fields || []).includes(field)) { const note=document.createElement("em"); note.textContent="システム変更"; label.append(" ",note); }
             row.append(label,values); item.appendChild(row);
         });
         outer.appendChild(item);
