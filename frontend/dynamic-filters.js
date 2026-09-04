@@ -4,6 +4,7 @@ const operators = {
     number: [["eq","等しい"],["gte","以上"],["lte","以下"]],
     date: [["eq","等しい"],["lte","以前"],["gte","以後"],["between","期間指定"],["empty","未設定"],["set","設定済み"]]
 };
+import {searchUrl,updateSearchParams} from "./url-utils.js";
 const normalized = value => String(value ?? "").trim().toLocaleLowerCase("ja");
 
 export function matchesFilter(actual, row) {
@@ -57,8 +58,9 @@ export function createDynamicFilters({fields, sorts, defaultSort, onApply}) {
     applied.forEach(addRow); refreshAdd();
     add.addEventListener("change",()=>{if(add.value)addRow({field:add.value,enabled:true});add.value="";});
     const readRows=()=>[...rows.children].map(row=>({field:row.dataset.field,type:fields[row.dataset.field].type,enabled:row.querySelector('input[type="checkbox"]').checked,operator:row.querySelector("select").value,value:row.querySelector(".filter-value").value,valueTo:row.querySelector(".filter-value-to").value}));
-    const apply=()=>{applied=readRows();const next=new URLSearchParams();if(query.value.trim())next.set("q",query.value.trim());if(applied.length)next.set("filters",JSON.stringify(applied));if(sort.value!==defaultSort)next.set("sort",sort.value);next.set("filtersOpen",filterDetails.open?"1":"0");if(optionDetails.open)next.set("optionsOpen","1");history.replaceState(null,"",`${location.pathname}?${next}`);onApply({query:query.value.trim(),filters:applied.filter(r=>r.enabled),sort:sort.value});};
+    const apply=()=>{applied=readRows();const next=updateSearchParams(location.search,{q:query.value.trim()||null,filters:applied.length?JSON.stringify(applied):null,sort:sort.value!==defaultSort?sort.value:null,filtersOpen:filterDetails.open?"1":"0",optionsOpen:optionDetails.open?"1":null});history.replaceState(null,"",`${location.pathname}?${next}`);onApply({query:query.value.trim(),filters:applied.filter(r=>r.enabled),sort:sort.value});};
     document.getElementById("apply-filters").addEventListener("click",apply);
-    document.getElementById("clear-filters").addEventListener("click",()=>{query.value="";rows.innerHTML="";sort.value=defaultSort;applied=[];history.replaceState(null,"",location.pathname);refreshAdd();onApply({query:"",filters:[],sort:defaultSort});});
+    document.getElementById("clear-filters").addEventListener("click",()=>{query.value="";rows.innerHTML="";sort.value=defaultSort;applied=[];history.replaceState(null,"",searchUrl(location.pathname,location.search,{q:null,filters:null,sort:null,filtersOpen:null,optionsOpen:null}));refreshAdd();onApply({query:"",filters:[],sort:defaultSort});});
+    filterDetails.addEventListener("toggle",apply);optionDetails.addEventListener("toggle",apply);sort.addEventListener("change",apply);
     panel.hidden=false; apply();
 }
