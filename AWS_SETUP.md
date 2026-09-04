@@ -15,3 +15,12 @@ API Gateway HTTP API に次のLambda統合ルートを追加し、既存のCogni
 - `PATCH /minutes/{minutes_id}`（既存の `PATCH /minutes/{minutes_id}/status` はそのまま維持）
 
 `PATCH /tasks/{task_id}` は既存ルートを利用します。DynamoDBテーブルやGSIの追加、データ移行、AWSリソースの新規作成は不要です。Lambda実行ロールには既存2テーブルに対する `dynamodb:Scan`、`dynamodb:GetItem`、`dynamodb:UpdateItem` 権限が必要です。
+
+## ユーザープロフィール管理
+
+1. 東京リージョンに DynamoDB `ai-users` テーブルを、文字列パーティションキー `user_id`、オンデマンドキャパシティで作成する。GSI、既存テーブルの変更、データ移行は不要。
+2. Lambda 実行ロールに `ai-users` テーブルだけを対象とする `dynamodb:GetItem`、`dynamodb:PutItem`、`dynamodb:Scan` を追加する。
+3. API Gateway HTTP API に `GET /users`、`GET /users/me`、`PUT /users/me` を既存 Lambda 統合で追加し、すべてに既存 Cognito JWT Authorizer を適用する。CORS のメソッドに `PUT` を追加してデプロイする。
+4. Lambda ZIP には既存ファイルに加え `user_service.py` を含める。必要に応じて環境変数 `USERS_TABLE_NAME` でテーブル名を上書きでき、未設定時は `ai-users` となる。
+
+新しい Lambda、Cognito、SNS、SQS、GSI、既存データの移行は不要です。

@@ -1225,3 +1225,8 @@ input:focus {
 .detail-heading > .action-link, .detail-heading > .heading-actions { flex:0 0 auto; width:auto; margin-left:auto; }
 .related-minutes-panel .minutes-table { min-width:640px; }
 @media(max-width:600px){.detail-heading{flex-wrap:wrap}.detail-heading>.action-link,.detail-heading>.heading-actions{margin-left:0}.detail-heading>.heading-actions{width:100%}}
+
+.profile-link { cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.profile-values { display: grid; grid-template-columns: 10rem 1fr; gap: 18px; }
+.profile-values dt, .profile-values dd { margin: 0; }
+#edit-button { align-self: flex-start; }

@@ -37,7 +37,21 @@ export async function login() {
 
 // 現在ログインしているユーザーを取得
 export async function getCurrentUser() {
-    return await userManager.getUser();
+    const user = await userManager.getUser();
+    if (!user || user.expired || user._profileLoaded) return user;
+    user._profileLoaded = true;
+    try {
+        const response = await fetch("https://ba2lg9ckm9.execute-api.ap-northeast-1.amazonaws.com/users/me", {
+            headers: {Authorization: `Bearer ${user.access_token}`}
+        });
+        if (response.ok) {
+            const data = await response.json();
+            if (data.user?.display_name) user.profile.display_name = data.user.display_name;
+        }
+    } catch {
+        // プロフィールAPIの障害時もOIDCクレームによる従来表示を維持する。
+    }
+    return user;
 }
 
 
