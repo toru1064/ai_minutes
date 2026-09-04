@@ -75,7 +75,15 @@ def save_minutes(minutes_data, registered_by):
 
         "status": "draft",
         "created_at": now,
-        "updated_at": now
+        "updated_at": now,
+        # 新規データは作成操作も変更履歴へ保存する。既存データは画面側で補完する。
+        "change_history": [{
+            "action": "created",
+            "entity_type": "minutes",
+            "operated_by": registered_by,
+            "operated_at": now,
+            "changed_fields": {}
+        }]
     }
 
     table.put_item(Item=item)
@@ -167,23 +175,25 @@ def update_minutes_status(minutes_id, status, operated_by, rejection_reason=None
 
 
 # 生成したAI議事録を保存
-def update_ai_minutes(minutes_id, ai_minutes):
+def update_ai_minutes(minutes_id, ai_minutes, history_entry=None):
     updated_at = datetime.now(
         timezone.utc
     ).isoformat()
 
+    expression = "SET ai_minutes = :ai_minutes, updated_at = :updated_at"
+    values = {
+        ":ai_minutes": ai_minutes,
+        ":updated_at": updated_at
+    }
+    if history_entry:
+        expression += ", change_history = list_append(if_not_exists(change_history, :empty), :history)"
+        values.update({":empty": [], ":history": [history_entry]})
     response = table.update_item(
         Key={
             "minutes_id": minutes_id
         },
-        UpdateExpression=(
-            "SET ai_minutes = :ai_minutes, "
-            "updated_at = :updated_at"
-        ),
-        ExpressionAttributeValues={
-            ":ai_minutes": ai_minutes,
-            ":updated_at": updated_at
-        },
+        UpdateExpression=expression,
+        ExpressionAttributeValues=values,
         ReturnValues="ALL_NEW"
     )
 

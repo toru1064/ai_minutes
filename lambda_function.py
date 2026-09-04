@@ -96,7 +96,7 @@ def lambda_handler(event, context):
 
     # 保存済みの原文からAI議事録を生成
     if route_key == "POST /minutes/{minutes_id}/generate":
-        return handle_generate_saved(minutes_id)
+        return handle_generate_saved(minutes_id, event)
 
     # 議事録の状態を更新
     if route_key == "PATCH /minutes/{minutes_id}/status":
@@ -222,7 +222,7 @@ def handle_generate(body):
 
 
 # 保存済みの原文からAI議事録を生成して保存
-def handle_generate_saved(minutes_id):
+def handle_generate_saved(minutes_id, event):
     if not minutes_id:
         return create_response(
             400,
@@ -261,10 +261,20 @@ def handle_generate_saved(minutes_id):
 
     ai_minutes = generate_minutes(meeting_text)
 
-    updated_minutes = update_ai_minutes(
-        minutes_id,
-        ai_minutes
+    previous_history = current_minutes.get("change_history", [])
+    regenerated = any(
+        entry.get("action") == "ai_cleared"
+        or "raw_minutes" in entry.get("changed_fields", {})
+        for entry in previous_history
+        if isinstance(entry, dict)
     )
+    history_entry = {
+        "action": "ai_recreated" if regenerated else "ai_created",
+        "operated_by": _current_user(event),
+        "operated_at": datetime.now(timezone.utc).isoformat(),
+        "changed_fields": {}
+    }
+    updated_minutes = update_ai_minutes(minutes_id, ai_minutes, history_entry)
 
     return create_response(
         200,
@@ -435,8 +445,9 @@ def _history(current, updates, user, raw_field=None):
     changed = {}
     for key, value in updates.items():
         if current.get(key, "") != value:
-            changed[key] = ({"before": "（会議内容の原文）", "after": "会議内容の原文を変更"}
-                            if key == raw_field else {"before": current.get(key, ""), "after": value})
+            # 原文とAI生成結果は機密性・サイズの面から内容を履歴へ保存しない。
+            changed[key] = ({"changed": True} if key in {raw_field, "ai_minutes"}
+                            else {"before": current.get(key, ""), "after": value})
     return changed, {"action": "edited", "operated_by": user,
                      "operated_at": datetime.now(timezone.utc).isoformat(),
                      "changed_fields": changed}
@@ -510,6 +521,12 @@ def handle_minutes_update(minutes_id, body, event):
     changed, history = _history(current, updates, _current_user(event), "raw_minutes")
     if not changed:
         return create_response(200, {"message": "変更はありません", "minutes": current})
+    if raw_changed:
+        history["operations"] = ["raw_minutes_changed"]
+        if current.get("ai_minutes"):
+            history["operations"].append("ai_minutes_cleared")
+    if "status" in changed:
+        history["system_changed_fields"] = ["status"]
     updated = update_minutes(minutes_id, {k: updates[k] for k in changed}, history)
     if "project_id" in changed:
         sync_tasks_project(project["project_id"], project["project_name"], minutes_id)
