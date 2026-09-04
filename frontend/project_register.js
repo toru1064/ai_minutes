@@ -5,6 +5,7 @@ import {
     logout
 } from "./auth.js";
 import {setProfileDisplay} from "./display-utils.js";
+import {loadUsers,populateUserSelect,selectedUser} from "./user-select.js";
 
 
 const apiUrl =
@@ -18,6 +19,7 @@ const loginButton = document.getElementById("login-button");
 const logoutButton = document.getElementById("logout-button");
 
 let currentUser = null;
+let users = [];
 
 
 async function initialize() {
@@ -35,6 +37,9 @@ async function initialize() {
         setProfileDisplay(userStatus, currentUser, "ログイン中：");
         loginButton.hidden = true;
         logoutButton.hidden = false;
+        users = await loadUsers(currentUser.access_token);
+        populateUserSelect(document.getElementById("manager"), users);
+        if (!users.length) throw new Error("登録ユーザーがいません");
         form.hidden = false;
     } catch (error) {
         console.error(error);
@@ -57,7 +62,7 @@ form.addEventListener("submit", async event => {
             },
             body: JSON.stringify({
                 project_name: document.getElementById("project-name").value,
-                manager: document.getElementById("manager").value,
+                ...selectedUser(document.getElementById("manager"), users, "manager_id", "manager"),
                 status: document.getElementById("project-status").value,
                 start_date: document.getElementById("start-date").value,
                 end_date: document.getElementById("end-date").value,

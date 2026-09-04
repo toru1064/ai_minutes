@@ -38,6 +38,8 @@
         <!-- 左メニュー -->
         <aside class="sidebar">
             <nav class="sidebar-menu">
+                <a href="dashboard.html">ダッシュボード</a>
+                <a href="tasks.html?assignee=me">自分のチケット</a>
                 <a href="projects.html">
                     プロジェクト
                 </a>
@@ -68,7 +70,7 @@
             </p>
 
             <div id="detail-content" hidden>
-                <form id="minutes-edit-form" class="form-card" hidden><div class="form-grid"><label>プロジェクト *<select id="edit-project" required></select></label><label>会議名 *<input id="edit-meeting-name" required></label><label>会議日 *<input id="edit-meeting-date" type="date" required></label><label>担当者 *<input id="edit-assignee" required></label><label>承認者 *<input id="edit-approver" required></label></div><div class="form-actions"><button id="minutes-save-button">保存</button><button type="button" id="minutes-cancel-button" class="secondary-button">キャンセル</button></div></form>
+                <form id="minutes-edit-form" class="form-card" hidden><div class="form-grid"><label>プロジェクト *<select id="edit-project" required></select></label><label>会議名 *<input id="edit-meeting-name" required></label><label>会議日 *<input id="edit-meeting-date" type="date" required></label><label>担当者 *<select id="edit-assignee" required></select></label><label>承認者 *<select id="edit-approver" required></select></label></div><div class="form-actions"><button id="minutes-save-button">保存</button><button type="button" id="minutes-cancel-button" class="secondary-button">キャンセル</button></div></form>
 
                 <!-- 議事録の基本情報 -->
                 <section class="detail-metadata">

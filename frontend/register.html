@@ -47,6 +47,8 @@
         <!-- 左メニュー -->
         <aside class="sidebar">
             <nav class="sidebar-menu">
+                <a href="dashboard.html">ダッシュボード</a>
+                <a href="tasks.html?assignee=me">自分のチケット</a>
                 <a href="projects.html">
                     プロジェクト
                 </a>
@@ -138,12 +140,7 @@
                                 議事録担当者
                             </label>
 
-                            <input
-                                type="text"
-                                id="assignee"
-                                placeholder="例：田中"
-                                required
-                            >
+                            <select id="assignee" required><option value="">ユーザー一覧を読み込み中...</option></select>
                         </div>
 
                         <div class="form-field">
@@ -151,12 +148,7 @@
                                 承認者
                             </label>
 
-                            <input
-                                type="text"
-                                id="approver"
-                                placeholder="例：佐藤"
-                                required
-                            >
+                            <select id="approver" required><option value="">ユーザー一覧を読み込み中...</option></select>
                         </div>
                     </div>
                 </section>

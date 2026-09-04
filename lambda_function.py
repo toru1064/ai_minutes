@@ -170,6 +170,18 @@ def handle_user_list(event):
     return create_response(200, {"users": list_users()})
 
 
+def _resolve_user(data, id_field, name_field):
+    """Validate a Cognito sub and replace an untrusted display-name snapshot."""
+    user_id = data.get(id_field)
+    if not user_id:
+        return None
+    user = get_user(user_id)
+    if not user:
+        return create_response(400, {"message": "指定された登録ユーザーが見つかりません", "fields": [id_field]})
+    data[name_field] = user["display_name"]
+    return None
+
+
 # 議事録を1件取得
 def handle_detail(minutes_id):
     if not minutes_id:
@@ -287,6 +299,11 @@ def handle_generate_saved(minutes_id, event):
 
 # DynamoDBへ議事録を保存
 def handle_save(body, event):
+    body = dict(body)
+    for id_field, name_field in (("assignee_id", "assignee"), ("approver_id", "approver")):
+        error = _resolve_user(body, id_field, name_field)
+        if error:
+            return error
     required_fields = [
         "project_id",
         "meeting_name",
@@ -380,6 +397,10 @@ def handle_project_detail(project_id):
 
 # プロジェクトを登録
 def handle_project_save(body, event):
+    body = dict(body)
+    error = _resolve_user(body, "manager_id", "manager")
+    if error:
+        return error
     required_fields = [
         "project_name",
         "manager",
@@ -445,12 +466,19 @@ def _history(current, updates, user, raw_field=None):
     changed = {}
     for key, value in updates.items():
         if current.get(key, "") != value:
+            if key.endswith("_id"):
+                changed[key] = {"changed": True}
+                name_key = key[:-3]
+                changed.setdefault(name_key, {"before": current.get(name_key, ""),
+                                              "after": updates.get(name_key, current.get(name_key, ""))})
+                continue
             # 原文とAI生成結果は機密性・サイズの面から内容を履歴へ保存しない。
             changed[key] = ({"changed": True} if key in {raw_field, "ai_minutes"}
                             else {"before": current.get(key, ""), "after": value})
+    history_fields = {key: value for key, value in changed.items() if not key.endswith("_id")}
     return changed, {"action": "edited", "operated_by": user,
                      "operated_at": datetime.now(timezone.utc).isoformat(),
-                     "changed_fields": changed}
+                     "changed_fields": history_fields}
 
 
 def _normalize_newlines(value):
@@ -462,10 +490,13 @@ def handle_project_update(project_id, body, event):
     current = get_project_by_id(project_id)
     if not current:
         return create_response(404, {"message": "プロジェクトが見つかりません"})
-    allowed = {"project_name", "manager", "status", "start_date", "end_date", "description"}
+    allowed = {"project_name", "manager", "manager_id", "status", "start_date", "end_date", "description"}
     if set(body) - allowed:
         return create_response(400, {"message": "更新できない項目が含まれています"})
     updates = {key: (value.strip() if isinstance(value, str) else value) for key, value in body.items()}
+    error = _resolve_user(updates, "manager_id", "manager")
+    if error:
+        return error
     if any(not updates.get(key) for key in ("project_name", "manager", "start_date")):
         return create_response(400, {"message": "必須項目を入力してください"})
     if updates.get("status") not in {"active", "on_hold", "completed"}:
@@ -491,10 +522,14 @@ def handle_minutes_update(minutes_id, body, event):
     current = get_minutes_by_id(minutes_id)
     if not current:
         return create_response(404, {"message": "議事録が見つかりません"})
-    allowed = {"project_id", "meeting_name", "meeting_date", "assignee", "approver", "raw_minutes"}
+    allowed = {"project_id", "meeting_name", "meeting_date", "assignee", "assignee_id", "approver", "approver_id", "raw_minutes"}
     if set(body) - allowed:
         return create_response(400, {"message": "更新できない項目が含まれています"})
     updates = {key: (value.strip() if isinstance(value, str) and key != "raw_minutes" else value) for key, value in body.items()}
+    for id_field, name_field in (("assignee_id", "assignee"), ("approver_id", "approver")):
+        error = _resolve_user(updates, id_field, name_field)
+        if error:
+            return error
     if not updates:
         return create_response(200, {"message": "変更はありません", "minutes": current})
     if any(not updates.get(key) for key in updates):
@@ -623,7 +658,7 @@ TASK_STATUSES = {"not_started", "in_progress", "completed"}
 LEGACY_TASK_STATUSES = {"review_pending", "rejected"}
 TASK_PRIORITIES = {"low", "normal", "high", "urgent"}
 TASK_REQUIRED_FIELDS = ("source_minutes_id", "title", "assignee", "due_date")
-TASK_EDITABLE_FIELDS = {"source_minutes_id", "title", "description", "assignee", "due_date", "priority", "status", "resolution"}
+TASK_EDITABLE_FIELDS = {"source_minutes_id", "title", "description", "assignee", "assignee_id", "due_date", "priority", "status", "resolution"}
 
 def _task_progress(minutes_id, tasks=None):
     related = [task for task in (tasks if tasks is not None else get_tasks({"source_minutes_id": minutes_id})) if task.get("source_minutes_id") == minutes_id]
@@ -686,6 +721,10 @@ def handle_task_detail(task_id):
     return create_response(200, {"task": task})
 
 def handle_task_save(body, event):
+    body = dict(body)
+    error = _resolve_user(body, "assignee_id", "assignee")
+    if error:
+        return error
     message, fields = _validate_task(body)
     if message:
         return create_response(400, {"message": message, "fields": fields})
@@ -719,6 +758,9 @@ def handle_task_update(task_id, body, event):
     if message:
         return create_response(400, {"message": message, "fields": fields})
     updates = dict(body)
+    error = _resolve_user(updates, "assignee_id", "assignee")
+    if error:
+        return error
     if "source_minutes_id" in updates:
         minutes = get_minutes_by_id(updates["source_minutes_id"])
         if not minutes:
