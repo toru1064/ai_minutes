@@ -19,6 +19,8 @@
     <div class="app-layout">
         <aside class="sidebar">
             <nav class="sidebar-menu">
+                <a href="dashboard.html">ダッシュボード</a>
+                <a href="tasks.html?assignee=me">自分のチケット</a>
                 <a href="projects.html" class="active">プロジェクト</a>
                 <a href="index.html">議事録一覧</a>
                 <a href="register.html">議事録を登録</a>
@@ -38,7 +40,7 @@
             <p id="detail-message">プロジェクトを読み込んでいます...</p>
 
             <div id="detail-content" hidden>
-                <form id="project-edit-form" class="form-card" hidden><div class="form-grid"><label>プロジェクト名 *<input id="edit-name" required></label><label>責任者 *<input id="edit-manager" required></label><label>状態<select id="edit-status"><option value="active">進行中</option><option value="on_hold">保留</option><option value="completed">完了</option></select></label><label>開始日 *<input id="edit-start" type="date" required></label><label>終了予定日<input id="edit-end" type="date"></label></div><label>概要<textarea id="edit-description"></textarea></label><div class="form-actions"><button id="save-button">保存</button><button type="button" id="cancel-button" class="secondary-button">キャンセル</button></div></form>
+                <form id="project-edit-form" class="form-card" hidden><div class="form-grid"><label>プロジェクト名 *<input id="edit-name" required></label><label>責任者 *<select id="edit-manager" required></select></label><label>状態<select id="edit-status"><option value="active">進行中</option><option value="on_hold">保留</option><option value="completed">完了</option></select></label><label>開始日 *<input id="edit-start" type="date" required></label><label>終了予定日<input id="edit-end" type="date"></label></div><label>概要<textarea id="edit-description"></textarea></label><div class="form-actions"><button id="save-button">保存</button><button type="button" id="cancel-button" class="secondary-button">キャンセル</button></div></form>
                 <section class="detail-panel project-summary-panel">
                     <div class="project-summary-grid">
                         <div><span>状態</span><strong id="project-status"></strong></div>

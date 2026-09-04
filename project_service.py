@@ -46,6 +46,8 @@ def save_project(project_data, created_by):
         "created_at": now,
         "updated_at": now
     }
+    if project_data.get("manager_id"):
+        item["manager_id"] = project_data["manager_id"]
 
     table.put_item(Item=item)
     return item

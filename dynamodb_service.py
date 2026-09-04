@@ -85,6 +85,9 @@ def save_minutes(minutes_data, registered_by):
             "changed_fields": {}
         }]
     }
+    for field in ("assignee_id", "approver_id"):
+        if minutes_data.get(field):
+            item[field] = minutes_data[field]
 
     table.put_item(Item=item)
 

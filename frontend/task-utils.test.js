@@ -1,0 +1,4 @@
+import test from "node:test";import assert from "node:assert/strict";import {isMyTask,myTaskOrder,taskCounts} from "./task-utils.js";
+test("my task uses id only",()=>{assert.equal(isMyTask({assignee_id:"a",assignee:"同名"},"a"),true);assert.equal(isMyTask({assignee:"同名"},"a"),false);});
+test("my task default order",()=>{const tasks=[{task_number:"4",status:"completed",due_date:"2026-01-01"},{task_number:"3",status:"not_started"},{task_number:"2",status:"not_started",due_date:"2026-09-06"},{task_number:"1",status:"in_progress",due_date:"2026-09-01"}];assert.deepEqual(tasks.sort((a,b)=>myTaskOrder(a,b,"2026-09-04")).map(t=>t.task_number),["1","2","3","4"]);});
+test("dashboard counts",()=>{assert.deepEqual(taskCounts([{status:"not_started",due_date:"2026-09-01"},{status:"in_progress",due_date:"2026-09-08"}],"2026-09-04"),{not_started:1,in_progress:1,overdue:1,due_soon:1});});

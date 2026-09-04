@@ -126,7 +126,7 @@ function displayValue(field, value) {
 export function historyOperationLabels(entry) {
     const labels = [], operations = Array.isArray(entry.operations) ? entry.operations : [];
     if (operations.includes("raw_minutes_changed")) labels.push("会議内容（原文）を変更");
-    if (operations.includes("ai_minutes_cleared")) labels.push("AI議事録をクリア（再作成が必要）");
+    if (operations.includes("ai_minutes_cleared")) labels.push("AI議事録をクリア");
     if (entry.action === "ai_created") labels.push("AI議事録を作成");
     if (entry.action === "ai_recreated") labels.push("AI議事録を再作成");
     const changed = entry.changed_fields || {};
@@ -134,7 +134,7 @@ export function historyOperationLabels(entry) {
     if (changed.ai_minutes && !operations.includes("ai_minutes_cleared")) {
         const after = changed.ai_minutes?.after;
         labels.push(!after || (typeof after === "object" && !Object.keys(after).length)
-            ? "AI議事録をクリア（再作成が必要）" : "AI議事録を更新");
+            ? "AI議事録をクリア" : "AI議事録を更新");
     }
     return labels;
 }

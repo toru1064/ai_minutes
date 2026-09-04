@@ -6,6 +6,7 @@ import {
 } from "./auth.js";
 import {setProfileDisplay} from "./display-utils.js";
 import {setupSearchSelect} from "./search-select.js";
+import {loadUsers, populateUserSelect, selectedUser} from "./user-select.js";
 
 
 // API Gatewayの議事録登録URL
@@ -58,6 +59,7 @@ const projectSearch = document.getElementById("project-search");
 
 
 let currentUser = null;
+let users = [];
 
 
 // ログイン状態を確認
@@ -79,6 +81,15 @@ async function initializeAuth() {
             form.hidden = false;
 
             await loadProjects();
+            try {
+                users = await loadUsers(currentUser.access_token);
+                populateUserSelect(assignee, users);
+                populateUserSelect(approver, users);
+                if (!users.length) registerButton.disabled = true;
+            } catch (error) {
+                statusMessage.textContent = error.message;
+                assignee.disabled = approver.disabled = registerButton.disabled = true;
+            }
         } else {
             userStatus.textContent =
                 "ログインしていません";
@@ -255,11 +266,8 @@ form.addEventListener(
                             meeting_date:
                                 meetingDate.value,
 
-                            assignee:
-                                assignee.value,
-
-                            approver:
-                                approver.value,
+                            ...selectedUser(assignee, users, "assignee_id", "assignee"),
+                            ...selectedUser(approver, users, "approver_id", "approver"),
 
                             raw_minutes:
                                 meetingText.value

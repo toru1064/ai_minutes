@@ -24,3 +24,9 @@ API Gateway HTTP API に次のLambda統合ルートを追加し、既存のCogni
 4. Lambda ZIP には既存ファイルに加え `user_service.py` を含める。必要に応じて環境変数 `USERS_TABLE_NAME` でテーブル名を上書きでき、未設定時は `ai-users` となる。
 
 新しい Lambda、Cognito、SNS、SQS、GSI、既存データの移行は不要です。
+
+## ユーザー選択・ダッシュボード（2026-09）
+
+担当者、承認者、責任者は既存の `ai-users` と `GET /users` を利用し、Cognito JWT の `sub` を `assignee_id` / `approver_id` / `manager_id` として保存します。表示名はサーバーが `ai-users` から解決したスナップショットを既存の名前フィールドへ保存します。新しい API Gateway ルート、DynamoDB テーブル、GSI、Cognito 設定、IAM 権限は不要です。既存データの一括移行も不要で、IDのない自由入力名はそのまま表示・更新できます。
+
+バックエンドを変更したため Lambda の更新が必要です。デプロイ ZIP には `lambda_function.py`、`dynamodb_service.py`、`task_service.py`、`project_service.py`、`user_service.py`、`bedrock_service.py` と依存パッケージを含めてください。既存 HTTP API のルートと JWT Authorizer をそのまま利用します。

@@ -3,6 +3,7 @@ import {
     logout
 } from "./auth.js";
 import {setProfileDisplay, setUserDisplay, renderChangeHistory, minutesHistory} from "./display-utils.js";
+import {loadUsers,populateUserSelect,selectedUser,currentName} from "./user-select.js";
 
 
 // API GatewayのURL
@@ -84,6 +85,7 @@ const detailTabs = document.querySelectorAll(".detail-tab");
 
 let currentUser = null;
 let currentMinutes = null;
+let registeredUsers = [];
 let relatedTasks = [];
 let editInitial = "";
 let editDirty = false;
@@ -232,8 +234,8 @@ function displayMinutes(minutes) {
     titleStatus.className = `status-badge status-${minutes.status || "unknown"}`;
     document.getElementById("meeting-date").textContent = minutes.meeting_date || "-";
     setUserDisplay(document.getElementById("registered-by"), minutes.registered_by, currentUser);
-    document.getElementById("assignee").textContent = minutes.assignee || "-";
-    document.getElementById("approver").textContent = minutes.approver || "-";
+    document.getElementById("assignee").textContent = currentName(minutes,registeredUsers,"assignee_id","assignee");
+    document.getElementById("approver").textContent = currentName(minutes,registeredUsers,"approver_id","approver");
 
     document
         .getElementById("summary")
@@ -808,9 +810,9 @@ for (const tab of detailTabs) {
 
 const editForm=document.getElementById("minutes-edit-form");
 const rawForm=document.getElementById("raw-edit-form");
-const editValues=()=>({project_id:document.getElementById("edit-project").value,meeting_name:document.getElementById("edit-meeting-name").value.trim(),meeting_date:document.getElementById("edit-meeting-date").value,assignee:document.getElementById("edit-assignee").value.trim(),approver:document.getElementById("edit-approver").value.trim()});
+const editValues=()=>({project_id:document.getElementById("edit-project").value,meeting_name:document.getElementById("edit-meeting-name").value.trim(),meeting_date:document.getElementById("edit-meeting-date").value,...selectedUser(document.getElementById("edit-assignee"),registeredUsers,"assignee_id","assignee"),...selectedUser(document.getElementById("edit-approver"),registeredUsers,"approver_id","approver")});
 const normalizeNewlines=value=>String(value||"").replace(/\r\n?/g,"\n");
-document.getElementById("minutes-edit-button").addEventListener("click",async()=>{try{const response=await fetch("https://ba2lg9ckm9.execute-api.ap-northeast-1.amazonaws.com/projects",{headers:{Authorization:`Bearer ${currentUser.access_token}`}}),data=await response.json();if(!response.ok)throw new Error(data.message);const select=document.getElementById("edit-project");select.innerHTML="";(data.projects||[]).forEach(p=>select.add(new Option(`#${p.project_number} ${p.project_name}`,p.project_id)));select.value=currentMinutes.project_id;document.getElementById("edit-meeting-name").value=currentMinutes.meeting_name||"";document.getElementById("edit-meeting-date").value=currentMinutes.meeting_date||"";document.getElementById("edit-assignee").value=currentMinutes.assignee||"";document.getElementById("edit-approver").value=currentMinutes.approver||"";editInitial=JSON.stringify(editValues());editDirty=false;editForm.hidden=false;document.getElementById("minutes-edit-button").hidden=true;}catch(error){detailMessage.textContent=error.message;}});
+document.getElementById("minutes-edit-button").addEventListener("click",async()=>{try{registeredUsers=await loadUsers(currentUser.access_token);const response=await fetch("https://ba2lg9ckm9.execute-api.ap-northeast-1.amazonaws.com/projects",{headers:{Authorization:`Bearer ${currentUser.access_token}`}}),data=await response.json();if(!response.ok)throw new Error(data.message);const select=document.getElementById("edit-project");select.innerHTML="";(data.projects||[]).forEach(p=>select.add(new Option(`#${p.project_number} ${p.project_name}`,p.project_id)));select.value=currentMinutes.project_id;document.getElementById("edit-meeting-name").value=currentMinutes.meeting_name||"";document.getElementById("edit-meeting-date").value=currentMinutes.meeting_date||"";populateUserSelect(document.getElementById("edit-assignee"),registeredUsers,{selectedId:currentMinutes.assignee_id,legacyName:currentMinutes.assignee});populateUserSelect(document.getElementById("edit-approver"),registeredUsers,{selectedId:currentMinutes.approver_id,legacyName:currentMinutes.approver});editInitial=JSON.stringify(editValues());editDirty=false;editForm.hidden=false;document.getElementById("minutes-edit-button").hidden=true;}catch(error){detailMessage.textContent=error.message;}});
 editForm.addEventListener("input",()=>editDirty=JSON.stringify(editValues())!==editInitial);
 document.getElementById("minutes-cancel-button").addEventListener("click",()=>{if(editDirty&&!confirm("未保存の変更を破棄しますか？"))return;editDirty=false;editForm.hidden=true;document.getElementById("minutes-edit-button").hidden=false;});
 editForm.addEventListener("submit",async event=>{event.preventDefault();const payload=editValues();if(JSON.stringify(payload)===editInitial)return;if(["pending","approved"].includes(currentMinutes.status)&&!confirm("保存すると承認状態が下書きへ戻ります。続けますか？"))return;await saveMinutes(payload,document.getElementById("minutes-save-button"),()=>{editDirty=false;editForm.hidden=true;document.getElementById("minutes-edit-button").hidden=false;});});

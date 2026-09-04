@@ -20,6 +20,8 @@
     <div class="app-layout">
         <aside class="sidebar">
             <nav class="sidebar-menu">
+                <a href="dashboard.html">ダッシュボード</a>
+                <a href="tasks.html?assignee=me">自分のチケット</a>
                 <a href="projects.html" class="active">プロジェクト</a>
                 <a href="index.html">議事録一覧</a>
                 <a href="register.html">議事録を登録</a>
@@ -51,7 +53,7 @@
 
                         <div class="form-field">
                             <label for="manager">責任者</label>
-                            <input type="text" id="manager" placeholder="例：中野" required>
+                            <select id="manager" required><option value="">ユーザー一覧を読み込み中...</option></select><small id="users-message"></small>
                         </div>
 
                         <div class="form-field">

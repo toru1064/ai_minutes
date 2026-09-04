@@ -1258,3 +1258,4 @@ button:focus-visible,a:focus-visible,.profile-link:focus-visible { outline:3px s
     .form-actions { flex-direction:row; justify-content:flex-end; align-items:center; }
     .form-actions button,.form-actions a,.todo-actions button { width:auto!important; }
 }
+.dashboard-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.dashboard-panel{background:#fff;border:1px solid #ccd6df;padding:14px;min-width:0}.dashboard-panel h2{font-size:1rem;margin:0 0 10px}.count-strip{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:9px}.count-strip span{background:#edf2f6;border:1px solid #d4dde5;padding:4px 8px;font-size:.85rem}.compact-table{font-size:.86rem}.completed-toggle{font-size:.88rem}@media(max-width:800px){.dashboard-grid{grid-template-columns:1fr}}

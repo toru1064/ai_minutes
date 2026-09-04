@@ -68,11 +68,11 @@ test("プロフィール連絡先はAPIを優先しOIDCへ安全にフォール�
 });
 
 test("原文とAI議事録の履歴を内容ではなく操作名へ変換する", () => {
-    assert.deepEqual(historyOperationLabels({operations:["raw_minutes_changed","ai_minutes_cleared"]}), ["会議内容（原文）を変更", "AI議事録をクリア（再作成が必要）"]);
+    assert.deepEqual(historyOperationLabels({operations:["raw_minutes_changed","ai_minutes_cleared"]}), ["会議内容（原文）を変更", "AI議事録をクリア"]);
     assert.deepEqual(historyOperationLabels({action:"ai_created"}), ["AI議事録を作成"]);
     assert.deepEqual(historyOperationLabels({action:"ai_recreated"}), ["AI議事録を再作成"]);
     assert.deepEqual(historyOperationLabels({changed_fields:{ai_minutes:{before:{old:true},after:{new:true}}}}), ["AI議事録を更新"]);
-    assert.deepEqual(historyOperationLabels({changed_fields:{ai_minutes:{before:{old:true},after:{}}}}), ["AI議事録をクリア（再作成が必要）"]);
+    assert.deepEqual(historyOperationLabels({changed_fields:{ai_minutes:{before:{old:true},after:{}}}}), ["AI議事録をクリア"]);
 });
 
 test("UUID形式のCognito usernameを除外してemailを表示する", () => {

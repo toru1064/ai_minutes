@@ -43,6 +43,8 @@ def save_task(task_data, created_by):
             "operated_at": now, "changed_fields": {}
         }]
     }
+    if task_data.get("assignee_id"):
+        item["assignee_id"] = task_data["assignee_id"]
     if task_data.get("source_todo_index") is not None:
         item["source_todo_index"] = str(task_data["source_todo_index"])
     table.put_item(Item=item)
