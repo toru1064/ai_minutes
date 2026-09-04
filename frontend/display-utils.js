@@ -8,6 +8,10 @@ const FIELD_LABELS = {
 const STATUS_LABELS = {draft:"下書き",pending:"承認待ち",approved:"承認済み",rejected:"差し戻し",active:"進行中",on_hold:"保留",completed:"完了",not_started:"未着手",in_progress:"進行中"};
 // Cognito の sub は UUID のバージョンに限定せず、表示用途では形式だけを確認する。
 const UUID_FORMAT = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+export function formatLocalDateTime(value){
+ if(!value)return "-";const date=new Date(value);if(Number.isNaN(date.getTime()))return "-";
+ return new Intl.DateTimeFormat("ja-JP",{year:"numeric",month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit",hour12:false}).format(date);
+}
 
 export function normalizeUserProfile(userOrProfile = {}) {
     if (!userOrProfile || typeof userOrProfile !== "object") return {};
@@ -149,7 +153,7 @@ export function renderChangeHistory(container, history = [], userOrProfile = {})
     [...created, ...changes].forEach(entry => {
         const item=document.createElement("details"), heading=document.createElement("summary");
         const action = entry.action === "created" ? `　${entry.entity_type === "minutes" ? "議事録" : "チケット"}を作成` : "";
-        setUserDisplay(heading, entry.operated_by, userOrProfile, `${entry.operated_at ? new Date(entry.operated_at).toLocaleString("ja-JP") : "日時不明"}　`);
+        setUserDisplay(heading, entry.operated_by, userOrProfile, `${entry.operated_at ? formatLocalDateTime(entry.operated_at) : "日時不明"}　`);
         heading.append(action);
         item.appendChild(heading);
         historyOperationLabels(entry).forEach(text => { const row=document.createElement("div"); row.className="history-change history-operation"; row.textContent=text; item.appendChild(row); });
