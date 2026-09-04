@@ -4,7 +4,7 @@ import test from "node:test";
 import {readdir, readFile} from "node:fs/promises";
 import {fileURLToPath} from "node:url";
 
-import {displayUser, historyOperationLabels, minutesHistory, normalizeUserProfile, profileDisplayName, profileEmail, profileUsername, setProfileDisplay, setUserDisplay, taskHistory} from "./display-utils.js";
+import {displayUser, historyOperationLabels, minutesHistory, normalizeUserProfile, profileDisplayName, profileEmail, profileUsername, setProfileDisplay, setUserDisplay, sortChangeHistory, projectHistory, taskHistory} from "./display-utils.js";
 
 const sub = "12345678-1234-1234-1234-123456789abc";
 const cognitoSub = "d7e43ae8-1021-7059-2016-9886ec5da042";
@@ -57,6 +57,28 @@ test("既存議事録の作成履歴を補完し、保存済みなら二重表�
     assert.deepEqual(legacy[0], {action:"created", entity_type:"minutes", operated_at:"2026-01-01T00:00:00+00:00", operated_by:"担当者", changed_fields:{}, synthetic:true});
     const stored = {action:"created", entity_type:"minutes", operated_by:"担当者"};
     assert.deepEqual(minutesHistory({change_history:[stored]}), [stored]);
+});
+
+
+test("変更履歴はISO日時の昇順で安定し、不正・日時なしを末尾にする", () => {
+    const first={id:"first",operated_at:"2026-09-04T12:00:00+09:00"};
+    const same={id:"same",operated_at:"2026-09-04T03:00:00Z"};
+    const old={id:"old",operated_at:"2026-09-03T15:28:00Z"};
+    const invalid={id:"invalid",operated_at:"not-a-date"};
+    const missing={id:"missing"};
+    assert.deepEqual(sortChangeHistory([first,invalid,old,same,missing]).map(x=>x.id),["old","first","same","invalid","missing"]);
+});
+
+test("補完した作成履歴と更新履歴を全エンティティで共通に古い順へ統合する", () => {
+    for (const [factory,entityType] of [[taskHistory,"task"],[minutesHistory,"minutes"],[projectHistory,"project"]]) {
+        const result=factory({created_at:"2026-09-03T10:37:00Z",change_history:[
+            {action:"updated",operated_at:"2026-09-04T14:45:00Z"},
+            {action:"updated",operated_at:"2026-09-03T15:28:00Z"}
+        ]});
+        assert.deepEqual(result.map(x=>x.operated_at),["2026-09-03T10:37:00Z","2026-09-03T15:28:00Z","2026-09-04T14:45:00Z"]);
+        assert.equal(result[0].entity_type,entityType);
+        assert.equal(result.filter(x=>x.action==="created").length,1);
+    }
 });
 
 test("プロフィール連絡先はAPIを優先しOIDCへ安全にフォールバックする", () => {

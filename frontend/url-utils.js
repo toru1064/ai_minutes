@@ -7,4 +7,4 @@ export function updateSearchParams(current, changes={}) {
 }
 export function searchUrl(path,current,changes={}){const value=updateSearchParams(current,changes).toString();return `${path}${value?`?${value}`:""}`;}
 export function isMyTasksSearch(search){return new URLSearchParams(search).get("assignee")==="me";}
-export function completedFromSearch(search){return isMyTasksSearch(search)&&new URLSearchParams(search).get("showCompleted")==="1";}
+export function completedFromSearch(search){const value=new URLSearchParams(search).get("showCompleted");return value===null?!isMyTasksSearch(search):value==="1";}
