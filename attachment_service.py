@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from urllib.parse import quote
 
 import boto3
+from botocore.config import Config
 from botocore.exceptions import ClientError
 
 from task_service import get_task_by_id, table
@@ -48,7 +49,22 @@ def _bucket_name():
 
 
 def _s3():
-    return boto3.client("s3", region_name=os.environ.get("AWS_REGION", "ap-northeast-1"))
+    # AWS_REGION is set by Lambda and must win over developer-machine/default
+    # configuration.  Never silently use boto3's legacy us-east-1/global S3
+    # fallback: a presigned POST cannot follow the resulting 307 redirect.
+    session = boto3.Session()
+    region = (
+        os.environ.get("AWS_REGION", "").strip()
+        or os.environ.get("AWS_DEFAULT_REGION", "").strip()
+        or session.region_name
+    )
+    if not region:
+        raise AttachmentError(500, "AWSリージョンが設定されていません")
+    return session.client(
+        "s3",
+        region_name=region,
+        config=Config(signature_version="s3v4", s3={"addressing_style": "virtual"}),
+    )
 
 
 def safe_file_name(file_name):

@@ -1,6 +1,9 @@
+import base64
+import json
 import os
 import unittest
 from unittest.mock import MagicMock, patch
+from urllib.parse import urlparse
 
 os.environ.setdefault("AWS_DEFAULT_REGION", "ap-northeast-1")
 os.environ.setdefault("AWS_EC2_METADATA_DISABLED", "true")
@@ -15,6 +18,88 @@ def task(attachments=None):
 
 
 class AttachmentServiceTest(unittest.TestCase):
+    def test_s3_client_uses_lambda_region_sigv4_and_virtual_addressing(self):
+        with patch.dict(os.environ, {
+            "AWS_REGION": "ap-northeast-1",
+            "AWS_DEFAULT_REGION": "us-west-2",
+            "AWS_ACCESS_KEY_ID": "test",
+            "AWS_SECRET_ACCESS_KEY": "test",
+        }, clear=False):
+            client = service._s3()
+
+        self.assertEqual(client.meta.region_name, "ap-northeast-1")
+        self.assertEqual(client.meta.config.signature_version, "s3v4")
+        self.assertEqual(client.meta.config.s3["addressing_style"], "virtual")
+
+    def test_s3_client_falls_back_to_default_region(self):
+        with patch.dict(os.environ, {
+            "AWS_DEFAULT_REGION": "ap-northeast-1",
+            "AWS_ACCESS_KEY_ID": "test",
+            "AWS_SECRET_ACCESS_KEY": "test",
+        }, clear=False):
+            os.environ.pop("AWS_REGION", None)
+            client = service._s3()
+        self.assertEqual(client.meta.region_name, "ap-northeast-1")
+
+    @patch.object(service.boto3, "Session")
+    def test_s3_client_falls_back_to_session_region(self, session_factory):
+        session_factory.return_value.region_name = "ap-northeast-1"
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("AWS_REGION", None)
+            os.environ.pop("AWS_DEFAULT_REGION", None)
+            service._s3()
+        session_factory.return_value.client.assert_called_once()
+        self.assertEqual(
+            session_factory.return_value.client.call_args.kwargs["region_name"],
+            "ap-northeast-1",
+        )
+
+    @patch.object(service.boto3, "Session")
+    def test_s3_client_rejects_missing_region(self, session_factory):
+        session_factory.return_value.region_name = None
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("AWS_REGION", None)
+            os.environ.pop("AWS_DEFAULT_REGION", None)
+            with self.assertRaises(service.AttachmentError) as caught:
+                service._s3()
+        self.assertEqual(caught.exception.status, 500)
+        session_factory.return_value.client.assert_not_called()
+
+    @patch.object(service, "get_task_by_id", return_value=task())
+    def test_presigned_urls_use_tokyo_regional_endpoint_and_keep_policy(self, _get):
+        with patch.dict(os.environ, {
+            "AWS_REGION": "ap-northeast-1",
+            "AWS_ACCESS_KEY_ID": "test",
+            "AWS_SECRET_ACCESS_KEY": "test",
+        }, clear=False):
+            result = service.presign_upload(TASK_ID, {
+                "file_name": "report.pdf", "content_type": "application/pdf", "size": 2,
+            })
+
+        host = urlparse(result["upload_url"]).hostname
+        self.assertEqual(host, "private-test-bucket.s3.ap-northeast-1.amazonaws.com")
+        self.assertNotEqual(host, "private-test-bucket.s3.amazonaws.com")
+        self.assertEqual(result["fields"]["x-amz-algorithm"], "AWS4-HMAC-SHA256")
+        policy = result["fields"]["policy"]
+        conditions = json.loads(base64.b64decode(policy))["conditions"]
+        self.assertIn(["content-length-range", 1, service.MAX_FILE_SIZE], conditions)
+
+    @patch.object(service, "get_task_by_id")
+    def test_download_url_uses_tokyo_regional_endpoint(self, get):
+        get.return_value = task([{
+            "attachment_id": "right", "file_name": "a.pdf", "object_key": "stored/key",
+        }])
+        with patch.dict(os.environ, {
+            "AWS_REGION": "ap-northeast-1",
+            "AWS_ACCESS_KEY_ID": "test",
+            "AWS_SECRET_ACCESS_KEY": "test",
+        }, clear=False):
+            result = service.presign_download(TASK_ID, "right")
+        self.assertEqual(
+            urlparse(result["download_url"]).hostname,
+            "private-test-bucket.s3.ap-northeast-1.amazonaws.com",
+        )
+
     def test_size_and_type_validation(self):
         with self.assertRaises(service.AttachmentError):
             service.validate_file("x.pdf", "application/pdf", service.MAX_FILE_SIZE + 1)
