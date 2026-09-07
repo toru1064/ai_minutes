@@ -30,3 +30,53 @@ API Gateway HTTP API に次のLambda統合ルートを追加し、既存のCogni
 担当者、承認者、責任者は既存の `ai-users` と `GET /users` を利用し、Cognito JWT の `sub` を `assignee_id` / `approver_id` / `manager_id` として保存します。表示名はサーバーが `ai-users` から解決したスナップショットを既存の名前フィールドへ保存します。新しい API Gateway ルート、DynamoDB テーブル、GSI、Cognito 設定、IAM 権限は不要です。既存データの一括移行も不要で、IDのない自由入力名はそのまま表示・更新できます。
 
 バックエンドを変更したため Lambda の更新が必要です。デプロイ ZIP には `lambda_function.py`、`dynamodb_service.py`、`task_service.py`、`project_service.py`、`user_service.py`、`bedrock_service.py` と依存パッケージを含めてください。既存 HTTP API のルートと JWT Authorizer をそのまま利用します。
+
+## チケット添付ファイル（Amazon S3）
+
+### 1. 非公開バケット
+
+1. Lambda と同じリージョンで専用 S3 バケットを作成します。ACL は無効（Bucket owner enforced）にします。
+2. **ブロックパブリックアクセス**の4項目をすべて有効にします。公開バケットポリシーや公開ACLは設定しません。
+3. デフォルト暗号化を有効にします（SSE-S3、または組織管理のKMSキーを使う場合はSSE-KMS）。バージョニングは今回の要件では不要です。
+4. Lambda の環境変数 `ATTACHMENTS_BUCKET_NAME` に作成した正確なバケット名を設定します。未設定時にコードは代替バケットへ接続せず、設定エラーを返します。
+
+S3 CORS は実際に配信するフロントエンドのオリジンだけを許可します。本番例（ドメインは実値へ置換）:
+
+```json
+[{"AllowedOrigins":["https://app.example.com"],"AllowedMethods":["POST"],"AllowedHeaders":["*"],"ExposeHeaders":["ETag"],"MaxAgeSeconds":300}]
+```
+
+ローカル開発用バケット（または開発環境の設定）では、Vite のオリジンを明示します。本番設定へ localhost を混在させません。
+
+```json
+[{"AllowedOrigins":["http://localhost:5500"],"AllowedMethods":["POST"],"AllowedHeaders":["*"],"ExposeHeaders":["ETag"],"MaxAgeSeconds":300}]
+```
+
+`AllowedOrigins` に `*` を使わないでください。署名付きGETは画面遷移による取得のため、ブラウザJSでレスポンス本文を読む方式へ変更しない限りGETのS3 CORS許可は不要です。
+
+### 2. Lambda 実行ロール
+
+バケット内の `tasks/*` のみに、次の最小権限を追加します。SSE-KMSを選んだ場合は対象KMSキーに必要な暗号化・復号権限も限定して追加します。
+
+```json
+{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["s3:PutObject","s3:GetObject","s3:DeleteObject"],"Resource":"arn:aws:s3:::YOUR_PRIVATE_BUCKET/tasks/*"}]}
+```
+
+署名付きPOST/GETはLambda実行ロールの資格情報で発行されます。`HeadObject` は `s3:GetObject` で許可されます。バケット一覧・公開設定変更・他プレフィックスへの権限は不要です。
+
+### 3. API Gateway
+
+既存Lambda統合へ以下を**完全一致するルート**として追加し、4ルートすべてに既存 Cognito JWT Authorizer を適用します。
+
+- `POST /tasks/{task_id}/attachments/presign`
+- `POST /tasks/{task_id}/attachments/complete`
+- `GET /tasks/{task_id}/attachments/{attachment_id}/download`
+- `DELETE /tasks/{task_id}/attachments/{attachment_id}`
+
+HTTP API の CORS は既存フロントエンドオリジンのみを許可し、既存の `GET,POST,PATCH,PUT,OPTIONS` に **DELETE** を追加します。許可ヘッダーは少なくとも `Authorization,Content-Type` とし、変更後にステージへデプロイします。未認証ルートや `$default` Authorizer 例外を作らないでください。
+
+### 4. Lambda ZIP とデータ
+
+デプロイZIPにはアプリケーションの全Pythonファイル、すなわち `lambda_function.py`、`attachment_service.py`、`dynamodb_service.py`、`task_service.py`、`project_service.py`、`user_service.py`、`bedrock_service.py` と、`requirements.txt` から導入した依存パッケージを含めます（テスト、frontend、文書は不要です）。
+
+添付メタデータは既存 `ai-tasks` 項目の `attachments` 属性へ保存されます。テーブル、パーティションキー、GSI、キャパシティ設定の変更やデータ移行は不要です。既存項目に `attachments` がなければ空配列として扱われます。
