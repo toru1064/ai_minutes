@@ -136,6 +136,8 @@ export function historyOperationLabels(entry) {
     if (operations.includes("ai_minutes_cleared")) labels.push("AI議事録をクリア");
     if (entry.action === "ai_created") labels.push("AI議事録を作成");
     if (entry.action === "ai_recreated") labels.push("AI議事録を再作成");
+    if (entry.action === "attachment_added" && entry.file_name) labels.push(`ファイルを添付：${entry.file_name}`);
+    if (entry.action === "attachment_deleted" && entry.file_name) labels.push(`ファイルを削除：${entry.file_name}`);
     const changed = entry.changed_fields || {};
     if (changed.raw_minutes && !operations.includes("raw_minutes_changed")) labels.push("会議内容（原文）を変更");
     if (changed.ai_minutes && !operations.includes("ai_minutes_cleared")) {

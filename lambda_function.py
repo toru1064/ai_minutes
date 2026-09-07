@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import date, datetime, timezone
 from decimal import Decimal
 
@@ -25,6 +26,12 @@ from project_service import (
     save_project, update_project, sync_project_name
 )
 from user_service import get_user, list_users, save_user
+from attachment_service import (
+    AttachmentError, complete_upload, delete_attachment, presign_download,
+    presign_upload,
+)
+
+LOGGER = logging.getLogger(__name__)
 
 
 # API Gatewayへ返すレスポンスを作成
@@ -79,6 +86,14 @@ def lambda_handler(event, context):
         return handle_task_detail(task_id)
     if route_key == "PATCH /tasks/{task_id}":
         return handle_task_update(task_id, body, event)
+    if route_key == "POST /tasks/{task_id}/attachments/presign":
+        return handle_attachment_presign(task_id, body, event)
+    if route_key == "POST /tasks/{task_id}/attachments/complete":
+        return handle_attachment_complete(task_id, body, event)
+    if route_key == "GET /tasks/{task_id}/attachments/{attachment_id}/download":
+        return handle_attachment_download(task_id, path_parameters.get("attachment_id"), event)
+    if route_key == "DELETE /tasks/{task_id}/attachments/{attachment_id}":
+        return handle_attachment_delete(task_id, path_parameters.get("attachment_id"), event)
 
     # プロジェクトを1件取得
     if route_key == "GET /projects/{project_id}":
@@ -133,6 +148,45 @@ def _claims(event):
 def _authenticated_claims(event):
     claims = _claims(event)
     return claims if claims.get("sub") else None
+
+
+def _attachment_response(event, operation):
+    claims = _authenticated_claims(event)
+    if not claims:
+        return create_response(401, {"message": "認証情報にsubがありません"})
+    try:
+        return operation(claims)
+    except AttachmentError as error:
+        return create_response(error.status, {"message": error.message})
+    except Exception:
+        LOGGER.exception("attachment API failed")
+        return create_response(500, {"message": "添付ファイルの処理に失敗しました"})
+
+
+def handle_attachment_presign(task_id, body, event):
+    return _attachment_response(event, lambda claims: create_response(200, presign_upload(task_id, body)))
+
+
+def handle_attachment_complete(task_id, body, event):
+    def operation(claims):
+        profile = get_user(claims["sub"])
+        display = profile.get("display_name") if profile else _current_user(event)
+        attachments = complete_upload(task_id, body, claims["sub"], display)
+        return create_response(201, {"message": "ファイルを添付しました", "attachments": attachments})
+    return _attachment_response(event, operation)
+
+
+def handle_attachment_download(task_id, attachment_id, event):
+    return _attachment_response(event, lambda claims: create_response(200, presign_download(task_id, attachment_id)))
+
+
+def handle_attachment_delete(task_id, attachment_id, event):
+    def operation(claims):
+        profile = get_user(claims["sub"])
+        display = profile.get("display_name") if profile else _current_user(event)
+        attachments = delete_attachment(task_id, attachment_id, display)
+        return create_response(200, {"message": "ファイルを削除しました", "attachments": attachments})
+    return _attachment_response(event, operation)
 
 
 def handle_user_me(event):
@@ -718,6 +772,7 @@ def handle_task_detail(task_id):
     task = get_task_by_id(task_id)
     if not task:
         return create_response(404, {"message": "チケットが見つかりません"})
+    task["attachments"] = task.get("attachments") if isinstance(task.get("attachments"), list) else []
     return create_response(200, {"task": task})
 
 def handle_task_save(body, event):
