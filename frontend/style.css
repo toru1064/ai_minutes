@@ -1226,6 +1226,100 @@ input:focus {
 .related-minutes-panel .minutes-table { min-width:640px; }
 @media(max-width:600px){.detail-heading{flex-wrap:wrap}.detail-heading>.action-link,.detail-heading>.heading-actions{margin-left:0}.detail-heading>.heading-actions{width:100%}}
 
+/* 動的フィルター: PC の横並びを保ち、モバイルでは条件単位のカードにする */
+.filter-row-header,
+.filter-row-heading,
+.filter-row-controls,
+.filter-row-values { display: contents; }
+
+@media (min-width: 801px) {
+    .filter-row-heading > input { grid-column: 1; }
+    .filter-row-heading > strong { grid-column: 2; }
+    .filter-row-controls > select { grid-column: 3; }
+    .filter-row-values > .filter-value { grid-column: 4; }
+    .filter-row-values > .filter-value-to { grid-column: 5; }
+    .filter-row-header > .filter-remove { grid-column: 6; }
+}
+
+@media (max-width: 800px) {
+    #filter-rows {
+        display: grid;
+        gap: 10px;
+        margin: 8px 0 10px;
+    }
+
+    .filter-row {
+        display: block;
+        margin: 0;
+        padding: 8px;
+        border: 1px solid #d7e1e8;
+        border-radius: 6px;
+        background: #f7fafc;
+    }
+
+    .filter-row-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+
+    .filter-row-heading {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        gap: 7px;
+    }
+
+    .filter-row-heading > input[type="checkbox"] { flex: 0 0 auto; }
+    .filter-row-heading > strong { overflow-wrap: anywhere; }
+
+    .filter-remove {
+        align-self: auto !important;
+        width: auto !important;
+        min-width: auto;
+        padding: 4px 8px;
+        border: 1px solid #d6aaaa;
+        border-radius: 4px;
+        background: #fff;
+        color: #9b3030;
+        font-size: 13px;
+        line-height: 1.4;
+        white-space: nowrap;
+    }
+
+    .filter-row-controls {
+        display: grid;
+        grid-template-columns: minmax(0, 37fr) minmax(0, 63fr);
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .filter-row-values {
+        display: flex;
+        gap: 6px;
+        min-width: 0;
+    }
+
+    .filter-row-controls select,
+    .filter-row-controls input:not([type="checkbox"]),
+    .filter-row-values {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+
+    .filter-row-values > * { flex: 1 1 0; }
+    .filter-add-wrap { margin-top: 10px; }
+}
+
+@media (max-width: 260px) {
+    .filter-row-controls { grid-template-columns: minmax(0, 1fr); }
+}
+
 .profile-link { cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .profile-values { display: grid; grid-template-columns: 10rem 1fr; gap: 18px; }
 .profile-values dt, .profile-values dd { margin: 0; }
