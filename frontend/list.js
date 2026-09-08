@@ -6,6 +6,7 @@ import {
 } from "./auth.js";
 import {setProfileDisplay} from "./display-utils.js";
 import {createDynamicFilters, matchesFilter} from "./dynamic-filters.js";
+import {createListCard,replaceCards} from "./mobile-cards.js";
 
 
 // 議事録一覧を取得するAPI
@@ -139,7 +140,9 @@ function applyFilters(state) {
 
 // 議事録を表に表示
 function displayMinutesList(minutes) {
-    tableBody.innerHTML = "";
+    tableBody.replaceChildren();
+    const cards = [];
+    replaceCards(document.getElementById("minutes-mobile-list"), cards);
     if (!allMinutes.length) { listMessage.textContent = "登録された議事録はありません"; return; }
     if (!minutes.length) { listMessage.textContent = "条件に一致する議事録はありません"; return; }
     listMessage.textContent = `${minutes.length}件を表示`;
@@ -151,7 +154,15 @@ function displayMinutesList(minutes) {
         addTextCell(row,progress.total_tasks?`${progress.completed_tasks} / ${progress.total_tasks}件完了`:"チケットなし");
         addTextCell(row,item.assignee); addTextCell(row,item.approver); addTextCell(row,formatDate(item.updated_at));
         addProjectCell(row,item.project_name,item.project_id); tableBody.appendChild(row);
+        const status=document.createElement("span");status.className=`status-badge status-${item.status||"unknown"}`;status.textContent=formatStatus(item.status);
+        cards.push(createListCard({href:`detail.html?id=${encodeURIComponent(item.minutes_id)}`,number:item.minutes_number,title:item.meeting_name,fields:[
+            {label:"会議日",value:item.meeting_date,className:"mobile-date"},{label:"承認状態",node:status},
+            {label:"チケット進捗",value:progress.total_tasks?`${progress.completed_tasks} / ${progress.total_tasks}件完了`:"チケットなし"},
+            {label:"担当者",value:item.assignee},{label:"承認者",value:item.approver},{label:"更新日",value:formatDate(item.updated_at),className:"mobile-date"},
+            {label:"プロジェクト",value:item.project_name||"未設定"}
+        ]}));
     }
+    replaceCards(document.getElementById("minutes-mobile-list"),cards);
 }
 
 // 会議名から詳細ページへ移動できるリンクを作成

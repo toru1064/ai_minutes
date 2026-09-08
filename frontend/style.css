@@ -1264,6 +1264,8 @@ button:focus-visible,a:focus-visible,.profile-link:focus-visible { outline:3px s
 .attachment-picker-disabled{cursor:wait;opacity:.6}.attachment-status-success{color:#176b3a}.attachment-status-error{color:#8a2d20}
 .list-status-row{display:flex;align-items:center;justify-content:space-between;gap:16px}.segmented-switch{display:flex;flex:0 0 auto}.segmented-switch button{min-height:32px;padding:5px 10px;border-radius:0;background:#fff;color:#365568;border-color:#aebbc4}.segmented-switch button:first-child{border-radius:4px 0 0 4px}.segmented-switch button:last-child{border-radius:0 4px 4px 0}.segmented-switch button[aria-pressed="true"]{background:#2f77a8;color:#fff;border-color:#246b99}.due-date{font-weight:600;white-space:nowrap}.due-overdue{color:#b42318}.due-today{color:#a34f00}.due-soon{color:#625400}.due-label{display:inline-block;padding:1px 5px;border:1px solid currentColor;border-radius:3px;font-size:.72rem;line-height:1.35;white-space:nowrap}.compact-table{width:100%;table-layout:fixed}.compact-table td:first-child{width:4.5rem;white-space:nowrap}.compact-table td:nth-child(2){min-width:0;overflow-wrap:anywhere}.compact-table .dashboard-due{width:10.5rem;white-space:nowrap}.dashboard-panel{overflow:hidden}@media(max-width:600px){.list-status-row{align-items:flex-start;flex-direction:column}.compact-table tr{display:grid;grid-template-columns:auto minmax(0,1fr)}.compact-table td:first-child{width:auto}.compact-table .dashboard-due{grid-column:1/-1;width:auto}}
 
+.mobile-card-list { display: none; }
+
 /* ========================================
    全画面共通コンパクトレイアウト
 ======================================== */
@@ -1319,13 +1321,13 @@ body { font-size: var(--app-font-size); line-height: 1.45; }
     font-weight: bold;
 }
 
-:where(.list-page, .register-page, .detail-page) .page-heading p {
+:where(.list-page, .register-page, .detail-page, .dashboard-page) .page-heading p {
     margin-top: 4px;
     font-size: 13px;
 }
 
-:where(.list-page, .register-page, .detail-page) h2,
-:where(.list-page, .register-page, .detail-page) .panel-heading h2,
+:where(.list-page, .register-page, .detail-page, .dashboard-page) h2,
+:where(.list-page, .register-page, .detail-page, .dashboard-page) .panel-heading h2,
 :where(.list-page, .register-page, .detail-page) .attachments-heading h2,
 :where(.list-page, .register-page, .detail-page) .change-history > summary {
     font-size: var(--app-heading-size);
@@ -1705,6 +1707,45 @@ body { font-size: var(--app-font-size); line-height: 1.45; }
     .minutes-table { min-width: 680px; }
     .project-table { min-width: 720px; }
     .related-minutes-table { min-width: 640px; }
+
+    .desktop-list { display: none; }
+    .mobile-card-list {
+        display: grid;
+        width: 100%;
+        min-width: 0;
+        gap: var(--mobile-card-gap);
+    }
+    .mobile-list-card {
+        min-width: 0;
+        padding: var(--mobile-card-padding);
+        border: 1px solid var(--app-border);
+        border-radius: var(--app-radius);
+        background: var(--app-surface);
+    }
+    .mobile-card-title {
+        margin: 0 0 12px;
+        font-size: var(--mobile-section-title-size);
+        line-height: var(--mobile-line-height);
+    }
+    .mobile-card-title a {
+        display: block;
+        color: #176a9b;
+        overflow-wrap: anywhere;
+        text-decoration-thickness: 1px;
+    }
+    .mobile-card-details {
+        display: grid;
+        grid-template-columns: minmax(5.5rem, auto) minmax(0, 1fr);
+        gap: 6px 10px;
+        margin: 0;
+        font-size: var(--mobile-body-size);
+        line-height: var(--mobile-line-height);
+    }
+    .mobile-card-details dt { color: var(--app-muted); font-weight: 600; }
+    .mobile-card-details dd { min-width: 0; margin: 0; overflow-wrap: anywhere; }
+    .mobile-card-details .mobile-date,
+    .mobile-card-details .due-date { overflow-wrap: normal; word-break: keep-all; }
+    .mobile-status-value { font-weight: 600; }
 
     .dashboard-page .main-content { margin-left: 0; }
     .dashboard-panel { width: 100%; max-width: 100%; }
