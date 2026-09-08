@@ -1,5 +1,21 @@
 import { UserManager } from "oidc-client-ts";
 
+// モバイルの横ナビゲーションでは、現在地を初期表示時に見える位置へ移動する。
+// API・認証処理とは独立させ、PCの固定サイドバーではスクロールしない。
+function revealActiveMobileNavigation() {
+    if (!window.matchMedia("(max-width: 768px)").matches) return;
+    document.querySelector(".sidebar-menu a.active")?.scrollIntoView({
+        block: "nearest",
+        inline: "center",
+    });
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", revealActiveMobileNavigation, {once: true});
+} else {
+    revealActiveMobileNavigation();
+}
+
 
 // Cognitoのログイン画面用ドメイン
 const cognitoDomain =
