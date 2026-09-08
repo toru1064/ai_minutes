@@ -24,3 +24,14 @@ test("一覧カードは textContent と DOM API で組み立てる", async () =
     assert.match(source, /textContent/);
     assert.doesNotMatch(source, /innerHTML/);
 });
+
+test("モバイルの動的フィルターは見出しと横並びの入力欄を持つ", async () => {
+    const source = await readFile(new URL("dynamic-filters.js", import.meta.url), "utf8");
+    const css = await readFile(new URL("style.css", import.meta.url), "utf8");
+    assert.match(source, /filter-row-header/);
+    assert.match(source, /filter-row-controls/);
+    assert.match(source, /remove\.textContent="削除"/);
+    assert.match(css, /grid-template-columns: minmax\(0, 37fr\) minmax\(0, 63fr\)/);
+    assert.match(css, /\.filter-row-values \{[\s\S]*?min-width: 0;/);
+    assert.match(css, /@media \(max-width: 260px\)/);
+});
