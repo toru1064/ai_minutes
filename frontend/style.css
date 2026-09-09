@@ -2034,10 +2034,34 @@ body { font-size: var(--app-font-size); line-height: 1.45; }
     .detail-tabs { overflow-x: auto; }
     .detail-tabs button { flex: 0 0 auto; white-space: nowrap; }
 }
-.demo-mode-notice { position: sticky; top: 0; z-index: 1000; padding: .55rem 1rem; text-align: center;
-  color: #543a00; background: #fff4cc; border-bottom: 1px solid #e4c65a; font-size: .9rem; }
+.demo-mode-notice {
+    position: static;
+    width: 100%;
+    max-width: 100%;
+    margin: 0 0 var(--app-space-md);
+    padding: .55rem 1rem;
+    box-sizing: border-box;
+    text-align: center;
+    overflow-wrap: anywhere;
+    color: #543a00;
+    background: #fff4cc;
+    border: 1px solid #e4c65a;
+    border-radius: var(--app-radius);
+    font-size: .9rem;
+}
 .demo-mode:not(.demo-editable) #edit-button,
 .demo-mode:not(.demo-editable) #approval-area,
 .demo-mode:not(.demo-editable) #generate-button,
 .demo-mode #attachment-confirm, .demo-mode .attachment-picker,
 .demo-mode #upload-button, .demo-mode #profile-form { display: none !important; }
+
+@media (max-width: 768px) {
+    .demo-mode-notice {
+        width: 100%;
+        max-width: 100%;
+        margin-bottom: var(--mobile-card-gap);
+        padding: 8px 10px;
+        font-size: 13px;
+        line-height: var(--mobile-line-height);
+    }
+}

@@ -48,12 +48,14 @@ export function applyDemoMode(user, item) {
     document.body.classList.add("demo-mode");
     document.body.classList.toggle("demo-editable", item?.can_demo_edit === true);
     if (!document.getElementById("demo-mode-notice")) {
+        const mainContent = document.querySelector(".main-content");
+        if (!mainContent) return false;
         const notice = document.createElement("div");
         notice.id = "demo-mode-notice";
         notice.className = "demo-mode-notice";
         notice.setAttribute("role", "status");
         notice.textContent = "デモモード：サンプルデータは閲覧のみです。作成したデモデータは24時間後に削除されます。";
-        document.body.prepend(notice);
+        mainContent.prepend(notice);
     }
     return item?.can_demo_edit === true;
 }
