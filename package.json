@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "vite frontend --port 5500",
-    "build": "vite build frontend",
+    "dev": "vite --port 5500",
+    "build": "vite build",
     "test": "node --test frontend/*.test.js"
   },
   "repository": {
