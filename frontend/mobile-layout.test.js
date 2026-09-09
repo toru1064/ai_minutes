@@ -36,8 +36,26 @@ test("モバイルの動的フィルターは二段の条件カードとして�
     assert.match(mobile, /\.filter-name \{[\s\S]*?font-size: 14px;[\s\S]*?white-space: nowrap;/);
     assert.match(mobile, /\.filter-operator \{[\s\S]*?grid-row: 2;/);
     assert.match(mobile, /\.filter-value-group \{[\s\S]*?grid-row: 2;/);
-    assert.match(mobile, /\.filter-remove \{[\s\S]*?font-size: 0;/);
-    assert.match(mobile, /\.filter-remove::after[\s\S]*?content: "削除";/);
+    assert.match(mobile, /\.filter-remove \{[\s\S]*?min-height: 36px;[\s\S]*?font-size: 0;/);
+    assert.match(mobile, /\.filter-remove::after[\s\S]*?content: "削除";[\s\S]*?font-size: 13px;/);
+});
+
+test("PC とモバイルのフィルター配置を専用メディアクエリに分離する", async () => {
+    const css = await readFile(new URL("style.css", import.meta.url), "utf8");
+    const desktopStart = css.indexOf("@media (min-width: 769px)");
+    const mobileStart = css.indexOf("@media (max-width: 768px)");
+    const desktop = css.slice(desktopStart, mobileStart);
+    const mobile = css.slice(mobileStart);
+
+    assert.ok(desktopStart >= 0);
+    assert.ok(mobileStart > desktopStart);
+    assert.match(desktop, /grid-template-columns: 20px 160px 136px 320px 32px;/);
+    assert.match(desktop, /\.filter-value-group \{[\s\S]*?width: 320px;/);
+    assert.match(desktop, /\.filter-top,[\s\S]*?\.filter-heading \{ display: contents; \}/);
+    assert.doesNotMatch(desktop, /grid-template-columns: minmax\(0, 38fr\)/);
+    assert.match(mobile, /grid-template-columns: minmax\(0, 38fr\) minmax\(0, 62fr\);/);
+    assert.match(mobile, /\.filter-row \{[\s\S]*?padding: 8px;/);
+    assert.doesNotMatch(mobile, /grid-template-columns: 20px 160px 136px 320px 32px;/);
 });
 
 test("モバイルの共通文字サイズと入力欄の自動ズーム対策を維持する", async () => {

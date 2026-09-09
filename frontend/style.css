@@ -1201,24 +1201,12 @@ input:focus {
 .dynamic-filters { margin:16px 0; padding:16px; border:1px solid #cfdbe4; border-radius:6px; background:#fff; }
 .dynamic-filters summary { margin:10px 0; color:#263b4a; font-weight:700; cursor:pointer; }
 .free-search { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
-.filter-row { display:grid; grid-template-columns:20px 160px 128px minmax(180px,1fr) 54px; align-items:center; gap:7px; margin:5px 0; }
-.filter-top { display:contents; }
-.filter-heading { display:contents; }
-.filter-enabled { grid-column:1; width:auto; margin:0; }
-.filter-name { grid-column:2; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.filter-operator { grid-column:3; }
-.filter-value-group { grid-column:4; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:7px; min-width:0; }
-.filter-value { grid-column:1 / -1; }
-.filter-value-group:has(.filter-value-to:not([hidden])) .filter-value { grid-column:1; }
-.filter-value-to { grid-column:2; }
-.filter-row select,.filter-row input:not([type=checkbox]) { width:100%; min-width:0; box-sizing:border-box; }
 .filter-add-wrap { display:flex; justify-content:flex-end; margin:12px 0; }
 .filter-actions { display:flex; gap:10px; margin:12px 0; }
-.filter-remove { grid-column:5; justify-self:end; width:28px!important; min-width:28px; padding:2px; border:0; background:transparent; color:#b42318; font-size:20px; }
-@media(max-width:800px){.detail-tabs-actions{display:block}.detail-tabs-actions .workflow-bar{margin-top:10px}.todo-edit-fields{grid-template-columns:1fr}.todo-actions{flex-direction:column}.todo-actions button{width:100%}.filter-add-wrap select{width:100%}}
+@media(max-width:800px){.detail-tabs-actions{display:block}.detail-tabs-actions .workflow-bar{margin-top:10px}.todo-edit-fields{grid-template-columns:1fr}.todo-actions{flex-direction:column}.todo-actions button{width:100%}}
 
 /* Redmine風のコンパクトな一覧操作 */
-.dynamic-filters{padding:10px 12px}.filter-add-wrap{text-align:right}.filter-add-wrap select,.filter-actions button,.compact-button{width:auto!important}.filter-actions{justify-content:flex-start;gap:7px}.todo-summary-list{padding-left:22px}.todo-summary-list li{margin:10px 0;white-space:normal}.todo-summary-list strong{white-space:pre-wrap}.todo-edit-fields[hidden]{display:none!important}.todo-actions{justify-content:flex-end}.todo-actions button{width:auto}.action-link{border:0;background:transparent;color:#356b91;padding:4px 7px}.action-link:hover{text-decoration:underline;background:#edf4f8}.bulk-actions{text-align:right;margin-top:12px}
+.dynamic-filters{padding:10px 12px}.filter-add-wrap{text-align:right}.filter-add-wrap select,.filter-actions button,.compact-button{width:auto}.filter-actions{justify-content:flex-start;gap:7px}.todo-summary-list{padding-left:22px}.todo-summary-list li{margin:10px 0;white-space:normal}.todo-summary-list strong{white-space:pre-wrap}.todo-edit-fields[hidden]{display:none!important}.todo-actions{justify-content:flex-end}.todo-actions button{width:auto}.action-link{border:0;background:transparent;color:#356b91;padding:4px 7px}.action-link:hover{text-decoration:underline;background:#edf4f8}.bulk-actions{text-align:right;margin-top:12px}
 @media(max-width:800px){.todo-actions{flex-direction:row}.todo-actions button{width:auto}}
 
 /* 共通のコンパクト操作、詳細見出し、変更履歴 */
@@ -1274,6 +1262,72 @@ button:focus-visible,a:focus-visible,.profile-link:focus-visible { outline:3px s
 .list-status-row{display:flex;align-items:center;justify-content:space-between;gap:16px}.segmented-switch{display:flex;flex:0 0 auto}.segmented-switch button{min-height:32px;padding:5px 10px;border-radius:0;background:#fff;color:#365568;border-color:#aebbc4}.segmented-switch button:first-child{border-radius:4px 0 0 4px}.segmented-switch button:last-child{border-radius:0 4px 4px 0}.segmented-switch button[aria-pressed="true"]{background:#2f77a8;color:#fff;border-color:#246b99}.due-date{font-weight:600;white-space:nowrap}.due-overdue{color:#b42318}.due-today{color:#a34f00}.due-soon{color:#625400}.due-label{display:inline-block;padding:1px 5px;border:1px solid currentColor;border-radius:3px;font-size:.72rem;line-height:1.35;white-space:nowrap}.compact-table{width:100%;table-layout:fixed}.compact-table td:first-child{width:4.5rem;white-space:nowrap}.compact-table td:nth-child(2){min-width:0;overflow-wrap:anywhere}.compact-table .dashboard-due{width:10.5rem;white-space:nowrap}.dashboard-panel{overflow:hidden}@media(max-width:600px){.list-status-row{align-items:flex-start;flex-direction:column}.compact-table tr{display:grid;grid-template-columns:auto minmax(0,1fr)}.compact-table td:first-child{width:auto}.compact-table .dashboard-due{grid-column:1/-1;width:auto}}
 
 .mobile-card-list { display: none; }
+
+/* 共通フィルター: PC（スマートフォン用カードとは明確に分離） */
+@media (min-width: 769px) {
+    .dynamic-filters {
+        width: max-content;
+        max-width: 100%;
+    }
+
+    #filter-rows {
+        display: grid;
+        gap: 7px;
+        margin: 7px 0;
+    }
+
+    .filter-row {
+        display: grid;
+        grid-template-columns: 20px 160px 136px 320px 32px;
+        align-items: center;
+        gap: 7px;
+        margin: 0;
+    }
+
+    .filter-top,
+    .filter-heading { display: contents; }
+
+    .filter-enabled { grid-column: 1; width: auto; margin: 0; }
+    .filter-name {
+        grid-column: 2;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .filter-operator { grid-column: 3; }
+    .filter-value-group {
+        grid-column: 4;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 7px;
+        width: 320px;
+        min-width: 0;
+    }
+    .filter-value { grid-column: 1 / -1; }
+    .filter-value-group:has(.filter-value-to:not([hidden])) .filter-value { grid-column: 1; }
+    .filter-value-to { grid-column: 2; }
+    .filter-row select,
+    .filter-row input:not([type="checkbox"]) {
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+    .filter-remove {
+        grid-column: 5;
+        justify-self: center;
+        width: 28px;
+        min-width: 28px;
+        min-height: 32px;
+        padding: 2px;
+        border: 0;
+        background: transparent;
+        color: #b42318;
+        font-size: 20px;
+    }
+    .filter-add-wrap { justify-content: flex-start; margin: 7px 0 5px; }
+    .filter-actions { margin: 5px 0 6px; }
+}
 
 /* ========================================
    全画面共通コンパクトレイアウト
@@ -1639,7 +1693,8 @@ body { font-size: var(--app-font-size); line-height: 1.45; }
     .page-heading {
         align-items: stretch;
         flex-direction: column;
-        gap: 10px;
+        gap: 6px;
+        margin-bottom: 10px;
     }
 
     .page-heading h1,
@@ -1661,7 +1716,7 @@ body { font-size: var(--app-font-size); line-height: 1.45; }
         overflow-wrap: anywhere;
     }
 
-    .primary-link { width: 100%; min-height: 44px; text-align: center; }
+    .primary-link { width: 100%; min-height: 44px; font-size: 14px; text-align: center; }
 
     .form-grid,
     .register-page .form-grid,
@@ -1703,8 +1758,18 @@ body { font-size: var(--app-font-size); line-height: 1.45; }
 
     #filter-rows {
         display: grid;
-        gap: 8px;
-        margin: 8px 0;
+        gap: 7px;
+        margin: 7px 0;
+    }
+    .dynamic-filters {
+        padding: 10px 12px;
+    }
+    .free-search {
+        gap: 4px;
+        margin-bottom: 8px;
+    }
+    .free-search input {
+        min-height: 44px;
     }
     .filter-row {
         display: grid;
@@ -1714,7 +1779,7 @@ body { font-size: var(--app-font-size); line-height: 1.45; }
         width: 100%;
         min-width: 0;
         margin: 0;
-        padding: 9px;
+        padding: 8px;
         border: 1px solid #d7e1e8;
         border-radius: 6px;
         background: #f7fafc;
@@ -1732,7 +1797,7 @@ body { font-size: var(--app-font-size); line-height: 1.45; }
         display: flex;
         align-items: center;
         min-width: 0;
-        gap: 7px;
+        gap: 6px;
     }
     .filter-enabled {
         flex: 0 0 auto;
@@ -1753,6 +1818,7 @@ body { font-size: var(--app-font-size); line-height: 1.45; }
         grid-row: 2;
         width: 100%;
         min-width: 0;
+        min-height: 44px;
     }
     .filter-value-group {
         grid-column: 2;
@@ -1764,11 +1830,13 @@ body { font-size: var(--app-font-size); line-height: 1.45; }
         width: 100%;
         min-width: 0;
         max-width: 100%;
+        min-height: 44px;
+        font-size: 16px;
     }
     .filter-remove {
         flex: 0 0 auto;
-        min-width: 52px;
-        min-height: 44px;
+        min-width: 48px;
+        min-height: 36px;
         padding: 4px 8px;
         border: 1px solid #d6aaaa;
         border-radius: 4px;
@@ -1780,7 +1848,7 @@ body { font-size: var(--app-font-size); line-height: 1.45; }
     }
     .filter-remove::after {
         content: "削除";
-        font-size: 14px;
+        font-size: 13px;
     }
     .filter-actions { flex-wrap: wrap; }
     .filter-actions button { min-height: 44px; }
