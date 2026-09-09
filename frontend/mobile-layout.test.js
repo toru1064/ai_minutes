@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
+import {arrangeFilterRow} from "./dynamic-filters.js";
 
 const files = ["tasks", "projects", "index"];
 
@@ -31,13 +32,61 @@ test("モバイルの動的フィルターは二段の条件カードとして�
     const mobile = css.slice(css.indexOf("@media (max-width: 768px)"));
 
     assert.match(source, /heading\.className="filter-heading"/);
-    assert.match(mobile, /\.filter-top \{[\s\S]*?display: flex;[\s\S]*?justify-content: space-between;/);
     assert.match(mobile, /\.filter-heading \{[\s\S]*?display: flex;/);
     assert.match(mobile, /\.filter-name \{[\s\S]*?font-size: 14px;[\s\S]*?white-space: nowrap;/);
-    assert.match(mobile, /\.filter-operator \{[\s\S]*?grid-row: 2;/);
-    assert.match(mobile, /\.filter-value-group \{[\s\S]*?grid-row: 2;/);
-    assert.match(mobile, /\.filter-remove \{[\s\S]*?font-size: 0;/);
-    assert.match(mobile, /\.filter-remove::after[\s\S]*?content: "削除";/);
+    assert.match(mobile, /\.filter-controls \{[\s\S]*?grid-row: 2;/);
+    assert.match(mobile, /\.filter-operator \{[\s\S]*?grid-column: 1;/);
+    assert.match(mobile, /\.filter-value-group \{[\s\S]*?grid-column: 2;/);
+    assert.match(mobile, /\.filter-remove \{[\s\S]*?min-height: 36px;[\s\S]*?font-size: 0;/);
+    assert.match(mobile, /\.filter-remove::after[\s\S]*?content: "削除";[\s\S]*?font-size: 13px;/);
+});
+
+test("フィルター行は見出し・比較条件・削除の3グループを直接の子にする", () => {
+    const makeNode = className => ({className, children: [], append(...children) { this.children.push(...children); }});
+    const row = makeNode("filter-row");
+    row.ownerDocument = {createElement: () => makeNode("")};
+    const heading = makeNode("filter-heading");
+    const operator = makeNode("filter-operator");
+    const valueGroup = makeNode("filter-value-group");
+    const remove = makeNode("filter-remove");
+
+    const controls = arrangeFilterRow(row, heading, operator, valueGroup, remove);
+
+    assert.deepEqual(row.children, [heading, controls, remove]);
+    assert.equal(controls.className, "filter-controls");
+    assert.deepEqual(controls.children, [operator, valueGroup]);
+});
+
+test("PC とモバイルのフィルター配置を専用メディアクエリに分離する", async () => {
+    const css = await readFile(new URL("style.css", import.meta.url), "utf8");
+    const desktopStart = css.indexOf("@media (min-width: 769px)");
+    const mobileStart = css.indexOf("@media (max-width: 768px)");
+    const desktop = css.slice(desktopStart, mobileStart);
+    const mobile = css.slice(mobileStart);
+
+    assert.ok(desktopStart >= 0);
+    assert.ok(mobileStart > desktopStart);
+    assert.match(desktop, /\.dynamic-filters \{[\s\S]*?width: 100%;[\s\S]*?max-width: none;[\s\S]*?box-sizing: border-box;/);
+    assert.match(desktop, /grid-template-columns: 200px 464px 32px;/);
+    assert.match(desktop, /\.filter-row \{[\s\S]*?grid-template-rows: auto;[\s\S]*?row-gap: 0;[\s\S]*?width: max-content;/);
+    assert.match(desktop, /\.filter-value-group \{[\s\S]*?width: 320px;/);
+    assert.match(desktop, /\.filter-controls \{[\s\S]*?grid-template-columns: 136px 320px;/);
+    assert.doesNotMatch(desktop, /grid-template-columns: minmax\(0, 38fr\)/);
+    assert.match(mobile, /\.filter-controls \{[\s\S]*?grid-template-columns: minmax\(0, 38fr\) minmax\(0, 62fr\);/);
+    assert.match(mobile, /\.filter-row \{[\s\S]*?padding: 8px;/);
+    assert.doesNotMatch(mobile, /grid-template-columns: 200px 464px 32px;/);
+});
+
+test("並べ替えだけをPCでは固定幅、モバイルでは全幅にする", async () => {
+    const css = await readFile(new URL("style.css", import.meta.url), "utf8");
+    const desktopStart = css.indexOf("@media (min-width: 769px)");
+    const mobileStart = css.indexOf("@media (max-width: 768px)");
+    const desktop = css.slice(desktopStart, mobileStart);
+    const mobile = css.slice(mobileStart);
+
+    assert.match(desktop, /#option-details > label \{[\s\S]*?flex-direction: column;/);
+    assert.match(desktop, /#sort \{[\s\S]*?width: 360px;[\s\S]*?max-width: 100%;/);
+    assert.match(mobile, /#sort \{ width: 100%; \}/);
 });
 
 test("モバイルの共通文字サイズと入力欄の自動ズーム対策を維持する", async () => {

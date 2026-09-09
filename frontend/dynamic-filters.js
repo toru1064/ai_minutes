@@ -7,6 +7,14 @@ const operators = {
 import {searchUrl,updateSearchParams} from "./url-utils.js";
 const normalized = value => String(value ?? "").trim().toLocaleLowerCase("ja");
 
+export function arrangeFilterRow(row, heading, operator, valueGroup, remove) {
+    const controls = row.ownerDocument.createElement("div");
+    controls.className = "filter-controls";
+    controls.append(operator, valueGroup);
+    row.append(heading, controls, remove);
+    return controls;
+}
+
 export function matchesFilter(actual, row) {
     const a = normalized(actual), v = normalized(row.value);
     if (row.operator === "empty") return !a;
@@ -53,10 +61,9 @@ export function createDynamicFilters({fields, sorts, defaultSort, onApply}) {
         const valueTo=document.createElement("input");valueTo.type="date";valueTo.className="filter-value-to";valueTo.value=state.valueTo||"";
         const valueGroup=document.createElement("div");valueGroup.className="filter-value-group";valueGroup.append(value,valueTo);
         const remove=document.createElement("button");remove.type="button";remove.className="filter-remove";remove.textContent="×";remove.setAttribute("aria-label",`${field.label}フィルターを削除`);
-        const top=document.createElement("div");top.className="filter-top";top.append(heading,remove);
         const visibility=()=>{const noValue=["empty","set"].includes(operator.value);value.hidden=noValue;valueTo.hidden=operator.value!=="between";};
         operator.addEventListener("change",visibility);remove.addEventListener("click",()=>{row.remove();refreshAdd();});
-        row.append(top,operator,valueGroup);rows.appendChild(row);visibility();refreshAdd();
+        arrangeFilterRow(row,heading,operator,valueGroup,remove);rows.appendChild(row);visibility();refreshAdd();
     };
     applied.forEach(addRow); refreshAdd();
     add.addEventListener("change",()=>{if(add.value)addRow({field:add.value,enabled:true});add.value="";});
