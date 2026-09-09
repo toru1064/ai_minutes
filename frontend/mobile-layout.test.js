@@ -37,8 +37,8 @@ test("モバイルの動的フィルターは二段の条件カードとして�
     assert.match(mobile, /\.filter-controls \{[\s\S]*?grid-row: 2;/);
     assert.match(mobile, /\.filter-operator \{[\s\S]*?grid-column: 1;/);
     assert.match(mobile, /\.filter-value-group \{[\s\S]*?grid-column: 2;/);
-    assert.match(mobile, /\.filter-remove \{[\s\S]*?min-height: 36px;[\s\S]*?font-size: 0;/);
-    assert.match(mobile, /\.filter-remove::after[\s\S]*?content: "削除";[\s\S]*?font-size: 13px;/);
+    assert.match(mobile, /\.filter-remove \{[\s\S]*?width: 40px;[\s\S]*?min-height: 40px;[\s\S]*?font-size: 20px;/);
+    assert.match(mobile, /\.filter-remove::after[\s\S]*?content: none;/);
 });
 
 test("フィルター行は見出し・比較条件・削除の3グループを直接の子にする", () => {
@@ -73,7 +73,7 @@ test("PC とモバイルのフィルター配置を専用メディアクエリ�
     assert.match(desktop, /\.filter-controls \{[\s\S]*?grid-template-columns: 136px 320px;/);
     assert.doesNotMatch(desktop, /grid-template-columns: minmax\(0, 38fr\)/);
     assert.match(mobile, /\.filter-controls \{[\s\S]*?grid-template-columns: minmax\(0, 38fr\) minmax\(0, 62fr\);/);
-    assert.match(mobile, /\.filter-row \{[\s\S]*?padding: 8px;/);
+    assert.match(mobile, /\.filter-row \{[\s\S]*?padding: 6px;/);
     assert.doesNotMatch(mobile, /grid-template-columns: 200px 464px 32px;/);
 });
 
