@@ -89,13 +89,13 @@ def consume_quota(event, kind, now=None, table=None):
     date_name, count_name = f"demo_{kind}_date", f"demo_{kind}_count"
     limit = AI_DAILY_LIMIT if kind == "ai" else WRITE_DAILY_LIMIT
     names = {"#date": date_name, "#count": count_name}
-    values = {":today": today, ":zero": 0, ":one": 1, ":limit": limit}
+    increment_values = {":today": today, ":zero": 0, ":one": 1, ":limit": limit}
     try:
         response = table.update_item(
             Key={"user_id": owner},
             UpdateExpression="SET #date = :today, #count = if_not_exists(#count, :zero) + :one",
             ConditionExpression="#date = :today AND (attribute_not_exists(#count) OR #count < :limit)",
-            ExpressionAttributeNames=names, ExpressionAttributeValues=values,
+            ExpressionAttributeNames=names, ExpressionAttributeValues=increment_values,
             ReturnValues="UPDATED_NEW")
     except ClientError as error:
         if error.response.get("Error", {}).get("Code") != "ConditionalCheckFailedException":
@@ -104,7 +104,11 @@ def consume_quota(event, kind, now=None, table=None):
             response = table.update_item(
                 Key={"user_id": owner}, UpdateExpression="SET #date = :today, #count = :one",
                 ConditionExpression="attribute_not_exists(#date) OR #date <> :today",
-                ExpressionAttributeNames=names, ExpressionAttributeValues=values,
+                # DynamoDB rejects expression values that are not referenced by
+                # this request.  In particular, :zero and :limit belong only to
+                # the increment request above, not to the UTC-day reset.
+                ExpressionAttributeNames=names,
+                ExpressionAttributeValues={":today": today, ":one": 1},
                 ReturnValues="UPDATED_NEW")
         except ClientError as retry_error:
             if retry_error.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
@@ -115,7 +119,8 @@ def consume_quota(event, kind, now=None, table=None):
                         Key={"user_id": owner},
                         UpdateExpression="SET #date = :today, #count = if_not_exists(#count, :zero) + :one",
                         ConditionExpression="#date = :today AND #count < :limit",
-                        ExpressionAttributeNames=names, ExpressionAttributeValues=values,
+                        ExpressionAttributeNames=names,
+                        ExpressionAttributeValues=increment_values,
                         ReturnValues="UPDATED_NEW")
                 except ClientError as final_error:
                     if final_error.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":

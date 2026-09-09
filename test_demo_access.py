@@ -2,7 +2,10 @@ import json
 import unittest
 from datetime import datetime, timezone
 from unittest.mock import Mock
+
+import boto3
 from botocore.exceptions import ClientError
+from botocore.stub import Stubber
 import demo_access as demo
 
 
@@ -52,3 +55,43 @@ class DemoAccessTests(unittest.TestCase):
         first = table.update_item.call_args_list[0].kwargs
         self.assertIn("#count < :limit", first["ConditionExpression"])
         self.assertEqual(first["ExpressionAttributeValues"][":limit"], 3)
+
+    def test_new_day_update_item_is_valid_after_resource_serialization(self):
+        """Validate the exact wire request, not merely that update_item was called."""
+        resource = boto3.resource(
+            "dynamodb", region_name="ap-northeast-1",
+            aws_access_key_id="test", aws_secret_access_key="test",
+            endpoint_url="https://dynamodb.ap-northeast-1.amazonaws.com",
+        )
+        table = resource.Table("ai-users")
+        client = resource.meta.client
+        names = {"#date": "demo_write_date", "#count": "demo_write_count"}
+        with Stubber(client) as stubber:
+            stubber.add_client_error(
+                "update_item", "ConditionalCheckFailedException",
+                expected_params={
+                    "TableName": "ai-users", "Key": {"user_id": "demo-sub"},
+                    "UpdateExpression": "SET #date = :today, #count = if_not_exists(#count, :zero) + :one",
+                    "ConditionExpression": "#date = :today AND (attribute_not_exists(#count) OR #count < :limit)",
+                    "ExpressionAttributeNames": names,
+                    "ExpressionAttributeValues": {":today": "2026-09-09", ":zero": 0,
+                                                  ":one": 1, ":limit": 30},
+                    "ReturnValues": "UPDATED_NEW",
+                },
+            )
+            stubber.add_response(
+                "update_item",
+                {"Attributes": {"demo_write_date": {"S": "2026-09-09"},
+                                "demo_write_count": {"N": "1"}}},
+                {"TableName": "ai-users", "Key": {"user_id": "demo-sub"},
+                 "UpdateExpression": "SET #date = :today, #count = :one",
+                 "ConditionExpression": "attribute_not_exists(#date) OR #date <> :today",
+                 "ExpressionAttributeNames": names,
+                 "ExpressionAttributeValues": {":today": "2026-09-09", ":one": 1},
+                 "ReturnValues": "UPDATED_NEW"},
+            )
+            result = demo.consume_quota(
+                event(["DemoUser"]), "write",
+                now=datetime(2026, 9, 9, tzinfo=timezone.utc), table=table,
+            )
+        self.assertEqual(result, {"limit": 30, "remaining": 29})

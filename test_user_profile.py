@@ -16,6 +16,21 @@ class UserApiTest(unittest.TestCase):
     def body(self, response):
         return json.loads(response["body"])
 
+    @patch("lambda_function.LOGGER.exception")
+    @patch("lambda_function._dispatch", side_effect=RuntimeError("secret@example.com jwt-sub"))
+    def test_unexpected_error_is_logged_without_sensitive_values(self, _, log_exception):
+        response = lambda_function.lambda_handler(event(), None)
+        self.assertEqual(response["statusCode"], 500)
+        self.assertEqual(self.body(response), {"message": "サーバー内部でエラーが発生しました"})
+        log_exception.assert_called_once_with("Unhandled Lambda request failure")
+
+    @patch("lambda_function.LOGGER.exception")
+    def test_malformed_json_is_400_without_exception_log(self, log_exception):
+        request = {**event(), "body": "{"}
+        response = lambda_function.lambda_handler(request, None)
+        self.assertEqual(response["statusCode"], 400)
+        log_exception.assert_not_called()
+
     @patch("lambda_function.ensure_demo_user")
     @patch("lambda_function.get_user", return_value=None)
     def test_unregistered_demo_user_is_auto_created_from_jwt_sub(self, _, ensure):
@@ -62,6 +77,40 @@ class UserApiTest(unittest.TestCase):
         self.assertIs(saved["demo_data"], True)
         self.assertEqual(saved["demo_owner_id"], "jwt-sub")
         self.assertEqual(saved["assignee"], "デモユーザー")
+
+    @patch("lambda_function.save_project")
+    @patch("lambda_function.consume_quota", return_value={"limit": 30, "remaining": 29})
+    @patch("lambda_function.get_user", return_value={"user_id": "jwt-sub", "display_name": "デモユーザー"})
+    def test_demo_user_can_create_project(self, _, __, save_project):
+        save_project.side_effect = lambda data, created_by: {"project_id": "project-1", **data}
+        response = lambda_function.handle_project_save({
+            "project_name": "デモPJ", "manager_id": "jwt-sub",
+            "manager": "クライアント値", "start_date": "2026-09-09",
+        }, event(**{"cognito:groups": ["DemoUser"]}))
+        self.assertEqual(response["statusCode"], 201)
+        saved = save_project.call_args.args[0]
+        self.assertIs(saved["demo_data"], True)
+        self.assertEqual(saved["demo_owner_id"], "jwt-sub")
+        self.assertEqual(saved["manager"], "デモユーザー")
+
+    @patch("lambda_function.save_minutes")
+    @patch("lambda_function.consume_quota", return_value={"limit": 30, "remaining": 29})
+    @patch("lambda_function.get_project_by_id", return_value={
+        "project_id": "project-1", "project_name": "デモPJ"})
+    @patch("lambda_function.get_user", return_value={"user_id": "jwt-sub", "display_name": "デモユーザー"})
+    def test_demo_user_can_create_minutes(self, _, __, ___, save_minutes):
+        save_minutes.side_effect = lambda data, registered_by: {"minutes_id": "minutes-1", **data}
+        response = lambda_function.handle_save({
+            "project_id": "project-1", "meeting_name": "デモ会議",
+            "meeting_date": "2026-09-09", "assignee_id": "jwt-sub",
+            "assignee": "クライアント値", "approver_id": "jwt-sub",
+            "approver": "クライアント値", "raw_minutes": "議事内容",
+        }, event(**{"cognito:groups": ["DemoUser"]}))
+        self.assertEqual(response["statusCode"], 201)
+        saved = save_minutes.call_args.args[0]
+        self.assertIs(saved["demo_data"], True)
+        self.assertEqual(saved["demo_owner_id"], "jwt-sub")
+        self.assertEqual(saved["project_name"], "デモPJ")
 
     @patch("lambda_function.save_user")
     def test_client_user_id_cannot_be_used(self, save):
