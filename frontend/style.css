@@ -1201,20 +1201,29 @@ input:focus {
 .dynamic-filters { margin:16px 0; padding:16px; border:1px solid #cfdbe4; border-radius:6px; background:#fff; }
 .dynamic-filters summary { margin:10px 0; color:#263b4a; font-weight:700; cursor:pointer; }
 .free-search { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
-.filter-row { display:grid; grid-template-columns:auto minmax(120px,1fr) minmax(130px,1fr) minmax(150px,2fr) minmax(150px,2fr) auto; align-items:center; gap:9px; margin:8px 0; }
+.filter-row { display:grid; grid-template-columns:20px 160px 128px minmax(180px,1fr) 54px; align-items:center; gap:7px; margin:5px 0; }
+.filter-top { display:contents; }
+.filter-heading { display:contents; }
+.filter-enabled { grid-column:1; width:auto; margin:0; }
+.filter-name { grid-column:2; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.filter-operator { grid-column:3; }
+.filter-value-group { grid-column:4; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:7px; min-width:0; }
+.filter-value { grid-column:1 / -1; }
+.filter-value-group:has(.filter-value-to:not([hidden])) .filter-value { grid-column:1; }
+.filter-value-to { grid-column:2; }
 .filter-row select,.filter-row input:not([type=checkbox]) { width:100%; min-width:0; box-sizing:border-box; }
 .filter-add-wrap { display:flex; justify-content:flex-end; margin:12px 0; }
 .filter-actions { display:flex; gap:10px; margin:12px 0; }
-.filter-remove { padding:7px 10px; background:#fff; color:#9b3030; border:1px solid #d6aaaa; }
-@media(max-width:800px){.detail-tabs-actions{display:block}.detail-tabs-actions .workflow-bar{margin-top:10px}.todo-edit-fields{grid-template-columns:1fr}.todo-actions{flex-direction:column}.todo-actions button{width:100%}.filter-row{grid-template-columns:auto 1fr}.filter-row>*:not(input[type=checkbox]){grid-column:2}.filter-remove{justify-self:start}.filter-add-wrap select{width:100%}}
+.filter-remove { grid-column:5; justify-self:end; width:28px!important; min-width:28px; padding:2px; border:0; background:transparent; color:#b42318; font-size:20px; }
+@media(max-width:800px){.detail-tabs-actions{display:block}.detail-tabs-actions .workflow-bar{margin-top:10px}.todo-edit-fields{grid-template-columns:1fr}.todo-actions{flex-direction:column}.todo-actions button{width:100%}.filter-add-wrap select{width:100%}}
 
 /* Redmine風のコンパクトな一覧操作 */
-.dynamic-filters{padding:10px 12px}.filter-row{display:grid;grid-template-columns:20px minmax(100px,max-content) minmax(110px,max-content) minmax(160px,1fr) minmax(140px,1fr) 30px;gap:7px;margin:5px 0;align-items:center}.filter-remove{width:28px!important;min-width:28px;padding:2px;border:0;background:transparent;color:#b42318;font-size:20px}.filter-add-wrap{text-align:right}.filter-add-wrap select,.filter-actions button,.compact-button{width:auto!important}.filter-actions{justify-content:flex-start;gap:7px}.todo-summary-list{padding-left:22px}.todo-summary-list li{margin:10px 0;white-space:normal}.todo-summary-list strong{white-space:pre-wrap}.todo-edit-fields[hidden]{display:none!important}.todo-actions{justify-content:flex-end}.todo-actions button{width:auto}.action-link{border:0;background:transparent;color:#356b91;padding:4px 7px}.action-link:hover{text-decoration:underline;background:#edf4f8}.bulk-actions{text-align:right;margin-top:12px}
-@media(max-width:800px){.filter-row{display:flex;flex-direction:column;align-items:stretch}.filter-row>input[type=checkbox]{align-self:flex-start}.filter-remove{align-self:flex-end}.todo-actions{flex-direction:row}.todo-actions button{width:auto}}
+.dynamic-filters{padding:10px 12px}.filter-add-wrap{text-align:right}.filter-add-wrap select,.filter-actions button,.compact-button{width:auto!important}.filter-actions{justify-content:flex-start;gap:7px}.todo-summary-list{padding-left:22px}.todo-summary-list li{margin:10px 0;white-space:normal}.todo-summary-list strong{white-space:pre-wrap}.todo-edit-fields[hidden]{display:none!important}.todo-actions{justify-content:flex-end}.todo-actions button{width:auto}.action-link{border:0;background:transparent;color:#356b91;padding:4px 7px}.action-link:hover{text-decoration:underline;background:#edf4f8}.bulk-actions{text-align:right;margin-top:12px}
+@media(max-width:800px){.todo-actions{flex-direction:row}.todo-actions button{width:auto}}
 
 /* 共通のコンパクト操作、詳細見出し、変更履歴 */
-.page-heading.detail-heading,.detail-page .page-heading{align-items:flex-start;gap:12px}.page-heading>div:first-child{flex:1 1 auto;min-width:0}.page-heading h1{overflow-wrap:anywhere}.page-heading .action-link{flex:0 0 auto;white-space:nowrap}.form-actions{display:flex;justify-content:flex-start;align-items:center;gap:10px;flex-wrap:wrap}.form-actions button,.form-actions a{width:auto!important;min-width:0;margin:0;padding:9px 16px}.form-actions .secondary-button{display:inline-block;box-sizing:border-box;background:#fff;color:#35576d;text-decoration:none;border:1px solid #9babb5}.filter-add-wrap{justify-content:flex-start!important;text-align:left!important;margin:6px 0 4px}.filter-actions{margin:4px 0 6px}.dynamic-filters summary{margin:6px 0}.filter-row{grid-template-columns:20px minmax(90px,max-content) minmax(100px,max-content) minmax(140px,260px) minmax(130px,220px) 28px}.table-link,.minutes-table a{color:#176a9b;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px}.table-link:hover,.minutes-table a:hover{color:#0c4769;background:#edf6fb}.panel-heading{gap:12px}.panel-heading>div:first-child{min-width:0}.change-history>summary{font-size:18px;font-weight:700}.change-history>details{margin:9px 0;padding:8px 12px;border-left:3px solid #9db4c4;background:#f7fafc}.change-history summary{cursor:pointer}.history-change{display:grid;gap:3px;margin:10px 0}.history-change span{white-space:pre-wrap;overflow-wrap:anywhere}.history-change em{padding:2px 5px;color:#67510c;background:#fff0b8;font-size:11px;font-style:normal}.related-minutes-panel .panel-heading{display:flex;justify-content:space-between;align-items:flex-start}.related-minutes-panel .panel-heading p{margin:6px 0 0}
-@media(max-width:600px){.form-actions{flex-direction:column;align-items:stretch}.form-actions button,.form-actions a{text-align:center}.page-heading.detail-heading .action-link{align-self:flex-start}.related-minutes-panel .panel-heading{flex-direction:column}.filter-row{align-items:stretch}.filter-remove{align-self:flex-start!important}}
+.page-heading.detail-heading,.detail-page .page-heading{align-items:flex-start;gap:12px}.page-heading>div:first-child{flex:1 1 auto;min-width:0}.page-heading h1{overflow-wrap:anywhere}.page-heading .action-link{flex:0 0 auto;white-space:nowrap}.form-actions{display:flex;justify-content:flex-start;align-items:center;gap:10px;flex-wrap:wrap}.form-actions button,.form-actions a{width:auto!important;min-width:0;margin:0;padding:9px 16px}.form-actions .secondary-button{display:inline-block;box-sizing:border-box;background:#fff;color:#35576d;text-decoration:none;border:1px solid #9babb5}.filter-add-wrap{justify-content:flex-start!important;text-align:left!important;margin:6px 0 4px}.filter-actions{margin:4px 0 6px}.dynamic-filters summary{margin:6px 0}.table-link,.minutes-table a{color:#176a9b;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px}.table-link:hover,.minutes-table a:hover{color:#0c4769;background:#edf6fb}.panel-heading{gap:12px}.panel-heading>div:first-child{min-width:0}.change-history>summary{font-size:18px;font-weight:700}.change-history>details{margin:9px 0;padding:8px 12px;border-left:3px solid #9db4c4;background:#f7fafc}.change-history summary{cursor:pointer}.history-change{display:grid;gap:3px;margin:10px 0}.history-change span{white-space:pre-wrap;overflow-wrap:anywhere}.history-change em{padding:2px 5px;color:#67510c;background:#fff0b8;font-size:11px;font-style:normal}.related-minutes-panel .panel-heading{display:flex;justify-content:space-between;align-items:flex-start}.related-minutes-panel .panel-heading p{margin:6px 0 0}
+@media(max-width:600px){.form-actions{flex-direction:column;align-items:stretch}.form-actions button,.form-actions a{text-align:center}.page-heading.detail-heading .action-link{align-self:flex-start}.related-minutes-panel .panel-heading{flex-direction:column}}
 
 /* 詳細画面で名前・番号・状態を同じ横書きタイトル領域に置く */
 .detail-heading { display:flex; align-items:flex-start; }
@@ -1463,15 +1472,15 @@ body { font-size: var(--app-font-size); line-height: 1.45; }
         --mobile-app-title-size: 20px;
         --mobile-auth-size: 14px;
         --mobile-main-inline-padding: 12px;
-        --mobile-page-title-size: 24px;
+        --mobile-page-title-size: 22px;
         --mobile-description-size: 14px;
-        --mobile-section-title-size: 18px;
-        --mobile-body-size: 16px;
+        --mobile-section-title-size: 16px;
+        --mobile-body-size: 14px;
         --mobile-meta-size: 14px;
         --mobile-badge-size: 12px;
-        --mobile-card-padding: 16px;
-        --mobile-card-gap: 12px;
-        --mobile-line-height: 1.5;
+        --mobile-card-padding: 10px;
+        --mobile-card-gap: 8px;
+        --mobile-line-height: 1.45;
     }
 
     html,
@@ -1582,7 +1591,7 @@ body { font-size: var(--app-font-size); line-height: 1.45; }
         max-width: 100%;
         min-width: 0;
         margin-left: 0;
-        padding: 14px var(--mobile-main-inline-padding);
+        padding: 12px var(--mobile-main-inline-padding);
         font-size: var(--mobile-body-size);
         line-height: var(--mobile-line-height);
     }
@@ -1663,12 +1672,13 @@ body { font-size: var(--app-font-size); line-height: 1.45; }
         grid-template-columns: minmax(0, 1fr);
     }
 
-    input:not([type="checkbox"]):not([type="radio"]),
-    select,
-    textarea {
+    :is(.list-page, .register-page, .detail-page, .dashboard-page) input:not([type="checkbox"]):not([type="radio"]),
+    :is(.list-page, .register-page, .detail-page, .dashboard-page) select,
+    :is(.list-page, .register-page, .detail-page, .dashboard-page) textarea {
         width: 100%;
         max-width: 100%;
         min-width: 0;
+        font-size: 16px;
     }
 
     .form-actions,
@@ -1691,63 +1701,75 @@ body { font-size: var(--app-font-size); line-height: 1.45; }
         text-align: center;
     }
 
-    .filter-row { width: 100%; min-width: 0; }
     #filter-rows {
         display: grid;
-        gap: 9px;
-        margin: 8px 0 10px;
+        gap: 8px;
+        margin: 8px 0;
     }
     .filter-row {
         display: grid;
-        grid-template-columns: 20px minmax(70px, .4fr) minmax(0, .3fr) minmax(0, .3fr);
+        grid-template-columns: minmax(0, 38fr) minmax(0, 62fr);
         align-items: center;
         gap: 8px;
+        width: 100%;
+        min-width: 0;
         margin: 0;
-        padding: 11px;
+        padding: 9px;
         border: 1px solid #d7e1e8;
         border-radius: 6px;
         background: #f7fafc;
     }
-    .filter-row > input[type="checkbox"] {
-        grid-column: 1;
+    .filter-top {
+        grid-column: 1 / -1;
         grid-row: 1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-width: 0;
+        gap: 8px;
+    }
+    .filter-heading {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        gap: 7px;
+    }
+    .filter-enabled {
+        flex: 0 0 auto;
         width: auto;
         margin: 0;
-        justify-self: start;
-        align-self: center;
     }
-    .filter-row > strong {
-        grid-column: 2 / 4;
-        grid-row: 1;
+    .filter-name {
         min-width: 0;
+        overflow: hidden;
+        font-size: 14px;
+        line-height: 1.4;
         white-space: nowrap;
+        text-overflow: ellipsis;
         text-align: left;
     }
-    .filter-row > select:not(.filter-value) {
-        grid-column: 1 / 3;
+    .filter-operator {
+        grid-column: 1;
         grid-row: 2;
+        width: 100%;
+        min-width: 0;
     }
-    .filter-row > .filter-value {
-        grid-column: 3 / 5;
+    .filter-value-group {
+        grid-column: 2;
         grid-row: 2;
+        width: 100%;
+        min-width: 0;
     }
-    .filter-row:has(.filter-value-to:not([hidden])) > .filter-value { grid-column: 3; }
-    .filter-row > .filter-value-to {
-        grid-column: 4;
-        grid-row: 2;
-    }
-    .filter-row > select,
-    .filter-row > input:not([type="checkbox"]) {
+    .filter-value-group > * {
+        width: 100%;
         min-width: 0;
         max-width: 100%;
     }
-    .filter-row > .filter-remove {
-        grid-column: 4;
-        grid-row: 1;
-        justify-self: end;
-        align-self: center;
-        min-width: 48px;
-        padding: 3px 7px;
+    .filter-remove {
+        flex: 0 0 auto;
+        min-width: 52px;
+        min-height: 44px;
+        padding: 4px 8px;
         border: 1px solid #d6aaaa;
         border-radius: 4px;
         background: #fff;
@@ -1756,9 +1778,9 @@ body { font-size: var(--app-font-size); line-height: 1.45; }
         line-height: 1.4;
         white-space: nowrap;
     }
-    .filter-row > .filter-remove::after {
+    .filter-remove::after {
         content: "削除";
-        font-size: 12px;
+        font-size: 14px;
     }
     .filter-actions { flex-wrap: wrap; }
     .filter-actions button { min-height: 44px; }
