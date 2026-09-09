@@ -1279,7 +1279,7 @@ button:focus-visible,a:focus-visible,.profile-link:focus-visible { outline:3px s
 
     .filter-row {
         display: grid;
-        grid-template-columns: 24px 160px 136px 320px 32px;
+        grid-template-columns: 200px 464px 32px;
         grid-template-rows: auto;
         align-items: center;
         column-gap: 8px;
@@ -1289,20 +1289,34 @@ button:focus-visible,a:focus-visible,.profile-link:focus-visible { outline:3px s
         margin: 0;
     }
 
-    .filter-top,
-    .filter-heading { display: contents; }
-
-    .filter-enabled { grid-column: 1; width: auto; margin: 0; }
+    .filter-heading {
+        grid-column: 1;
+        grid-row: 1;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+    }
+    .filter-enabled { flex: 0 0 auto; width: auto; margin: 0; }
     .filter-name {
-        grid-column: 2;
+        width: 160px;
         min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
-    .filter-operator { grid-column: 3; }
+    .filter-controls {
+        grid-column: 2;
+        grid-row: 1;
+        display: grid;
+        grid-template-columns: 136px 320px;
+        align-items: center;
+        column-gap: 8px;
+        min-width: 0;
+    }
+    .filter-operator { grid-column: 1; }
     .filter-value-group {
-        grid-column: 4;
+        grid-column: 2;
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
         gap: 7px;
@@ -1319,7 +1333,9 @@ button:focus-visible,a:focus-visible,.profile-link:focus-visible { outline:3px s
         box-sizing: border-box;
     }
     .filter-remove {
-        grid-column: 5;
+        grid-column: 3;
+        grid-row: 1;
+        align-self: center;
         justify-self: center;
         width: 28px;
         min-width: 28px;
@@ -1778,7 +1794,7 @@ body { font-size: var(--app-font-size); line-height: 1.45; }
     }
     .filter-row {
         display: grid;
-        grid-template-columns: minmax(0, 38fr) minmax(0, 62fr);
+        grid-template-columns: minmax(0, 1fr) auto;
         align-items: center;
         gap: 8px;
         width: 100%;
@@ -1789,16 +1805,9 @@ body { font-size: var(--app-font-size); line-height: 1.45; }
         border-radius: 6px;
         background: #f7fafc;
     }
-    .filter-top {
-        grid-column: 1 / -1;
-        grid-row: 1;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        min-width: 0;
-        gap: 8px;
-    }
     .filter-heading {
+        grid-column: 1;
+        grid-row: 1;
         display: flex;
         align-items: center;
         min-width: 0;
@@ -1818,16 +1827,23 @@ body { font-size: var(--app-font-size); line-height: 1.45; }
         text-overflow: ellipsis;
         text-align: left;
     }
+    .filter-controls {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        display: grid;
+        grid-template-columns: minmax(0, 38fr) minmax(0, 62fr);
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+    }
     .filter-operator {
         grid-column: 1;
-        grid-row: 2;
         width: 100%;
         min-width: 0;
         min-height: 44px;
     }
     .filter-value-group {
         grid-column: 2;
-        grid-row: 2;
         width: 100%;
         min-width: 0;
     }
@@ -1839,6 +1855,9 @@ body { font-size: var(--app-font-size); line-height: 1.45; }
         font-size: 16px;
     }
     .filter-remove {
+        grid-column: 2;
+        grid-row: 1;
+        justify-self: end;
         flex: 0 0 auto;
         min-width: 48px;
         min-height: 36px;
