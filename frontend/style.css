@@ -1266,8 +1266,9 @@ button:focus-visible,a:focus-visible,.profile-link:focus-visible { outline:3px s
 /* 共通フィルター: PC（スマートフォン用カードとは明確に分離） */
 @media (min-width: 769px) {
     .dynamic-filters {
-        width: max-content;
-        max-width: 100%;
+        width: 100%;
+        max-width: none;
+        box-sizing: border-box;
     }
 
     #filter-rows {
@@ -1278,9 +1279,13 @@ button:focus-visible,a:focus-visible,.profile-link:focus-visible { outline:3px s
 
     .filter-row {
         display: grid;
-        grid-template-columns: 20px 160px 136px 320px 32px;
+        grid-template-columns: 24px 160px 136px 320px 32px;
+        grid-template-rows: auto;
         align-items: center;
-        gap: 7px;
+        column-gap: 8px;
+        row-gap: 0;
+        width: max-content;
+        max-width: 100%;
         margin: 0;
     }
 

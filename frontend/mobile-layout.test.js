@@ -49,13 +49,15 @@ test("PC とモバイルのフィルター配置を専用メディアクエリ�
 
     assert.ok(desktopStart >= 0);
     assert.ok(mobileStart > desktopStart);
-    assert.match(desktop, /grid-template-columns: 20px 160px 136px 320px 32px;/);
+    assert.match(desktop, /\.dynamic-filters \{[\s\S]*?width: 100%;[\s\S]*?max-width: none;[\s\S]*?box-sizing: border-box;/);
+    assert.match(desktop, /grid-template-columns: 24px 160px 136px 320px 32px;/);
+    assert.match(desktop, /\.filter-row \{[\s\S]*?grid-template-rows: auto;[\s\S]*?row-gap: 0;[\s\S]*?width: max-content;/);
     assert.match(desktop, /\.filter-value-group \{[\s\S]*?width: 320px;/);
     assert.match(desktop, /\.filter-top,[\s\S]*?\.filter-heading \{ display: contents; \}/);
     assert.doesNotMatch(desktop, /grid-template-columns: minmax\(0, 38fr\)/);
     assert.match(mobile, /grid-template-columns: minmax\(0, 38fr\) minmax\(0, 62fr\);/);
     assert.match(mobile, /\.filter-row \{[\s\S]*?padding: 8px;/);
-    assert.doesNotMatch(mobile, /grid-template-columns: 20px 160px 136px 320px 32px;/);
+    assert.doesNotMatch(mobile, /grid-template-columns: 24px 160px 136px 320px 32px;/);
 });
 
 test("モバイルの共通文字サイズと入力欄の自動ズーム対策を維持する", async () => {
