@@ -25,7 +25,7 @@ from project_service import (
     get_projects,
     save_project, update_project, sync_project_name
 )
-from user_service import get_user, list_users, save_user
+from user_service import ensure_demo_user, get_user, list_users, save_user
 from attachment_service import (
     AttachmentError, complete_upload, delete_attachment, presign_download,
     presign_upload,
@@ -167,6 +167,14 @@ def _charge(event, kind):
                                      "limit": error.limit, "remaining": 0}), None
 
 
+def _ensure_demo_profile(event, current=None):
+    """Provision DemoUser from the trusted JWT sub; this is not a mutation quota."""
+    if current is not None or not is_demo_user(event):
+        return current
+    claims = _authenticated_claims(event)
+    return ensure_demo_user(claims["sub"]) if claims else None
+
+
 def _attachment_response(event, operation):
     claims = _authenticated_claims(event)
     if not claims:
@@ -216,7 +224,7 @@ def handle_user_me(event):
     claims = _authenticated_claims(event)
     if not claims:
         return create_response(401, {"message": "認証情報にsubがありません"})
-    item = get_user(claims["sub"])
+    item = _ensure_demo_profile(event, get_user(claims["sub"]))
     if item:
         return create_response(200, {"user": item, "registered": True})
     username = claims.get("preferred_username") or claims.get("cognito:username") or claims.get("username", "")
@@ -244,8 +252,11 @@ def handle_user_save(body, event):
 
 
 def handle_user_list(event):
-    if not _authenticated_claims(event):
+    claims = _authenticated_claims(event)
+    if not claims:
         return create_response(401, {"message": "認証情報にsubがありません"})
+    if is_demo_user(event):
+        _ensure_demo_profile(event, get_user(claims["sub"]))
     return create_response(200, {"users": list_users()})
 
 
