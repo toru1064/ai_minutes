@@ -48,6 +48,9 @@ def save_project(project_data, created_by):
     }
     if project_data.get("manager_id"):
         item["manager_id"] = project_data["manager_id"]
+    for field in ("demo_data", "demo_owner_id", "expires_at"):
+        if field in project_data:
+            item[field] = project_data[field]
 
     table.put_item(Item=item)
     return item

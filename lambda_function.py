@@ -30,6 +30,8 @@ from attachment_service import (
     AttachmentError, complete_upload, delete_attachment, presign_download,
     presign_upload,
 )
+from demo_access import (QuotaExceeded, can_demo_mutate, consume_quota,
+                         demo_metadata, is_demo_user, public_item)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -79,11 +81,11 @@ def lambda_handler(event, context):
 
     # チケットAPI
     if route_key == "GET /tasks":
-        return handle_task_list(event.get("queryStringParameters") or {})
+        return handle_task_list(event.get("queryStringParameters") or {}, event)
     if route_key == "POST /tasks":
         return handle_task_save(body, event)
     if route_key == "GET /tasks/{task_id}":
-        return handle_task_detail(task_id)
+        return handle_task_detail(task_id, event)
     if route_key == "PATCH /tasks/{task_id}":
         return handle_task_update(task_id, body, event)
     if route_key == "POST /tasks/{task_id}/attachments/presign":
@@ -97,13 +99,13 @@ def lambda_handler(event, context):
 
     # プロジェクトを1件取得
     if route_key == "GET /projects/{project_id}":
-        return handle_project_detail(project_id)
+        return handle_project_detail(project_id, event)
     if route_key == "PATCH /projects/{project_id}":
         return handle_project_update(project_id, body, event)
 
     # プロジェクト一覧を取得
     if route_key == "GET /projects":
-        return handle_project_list()
+        return handle_project_list(event)
 
     # プロジェクトを登録
     if route_key == "POST /projects":
@@ -121,11 +123,11 @@ def lambda_handler(event, context):
 
     # IDを指定して議事録を1件取得
     if route_key == "GET /minutes/{minutes_id}":
-        return handle_detail(minutes_id)
+        return handle_detail(minutes_id, event)
 
     # GET /minutesは議事録一覧を取得
     if route_key == "GET /minutes":
-        return handle_list()
+        return handle_list(event)
 
     # POST /minutesはDynamoDBへの保存
     if route_key == "POST /minutes":
@@ -133,7 +135,7 @@ def lambda_handler(event, context):
 
     # 従来の動作確認用AI生成API
     if route_key == "POST /minutes/generate":
-        return handle_generate(body)
+        return create_response(403, {"message": "デモモードでは保存前のAI生成は利用できません"}) if is_demo_user(event) else handle_generate(body)
 
     return create_response(
         404,
@@ -150,6 +152,21 @@ def _authenticated_claims(event):
     return claims if claims.get("sub") else None
 
 
+def _forbidden_demo(event, item=None):
+    if is_demo_user(event) and (item is None or not can_demo_mutate(event, item)):
+        return create_response(403, {"message": "デモモードではこのデータを変更できません"})
+    return None
+
+
+def _charge(event, kind):
+    try:
+        quota = consume_quota(event, kind)
+        return None, quota
+    except QuotaExceeded as error:
+        return create_response(429, {"message": "デモモードの本日の利用上限に達しました",
+                                     "limit": error.limit, "remaining": 0}), None
+
+
 def _attachment_response(event, operation):
     claims = _authenticated_claims(event)
     if not claims:
@@ -164,10 +181,14 @@ def _attachment_response(event, operation):
 
 
 def handle_attachment_presign(task_id, body, event):
+    if is_demo_user(event):
+        return create_response(403, {"message": "デモモードでは添付ファイルを追加できません"})
     return _attachment_response(event, lambda claims: create_response(200, presign_upload(task_id, body)))
 
 
 def handle_attachment_complete(task_id, body, event):
+    if is_demo_user(event):
+        return create_response(403, {"message": "デモモードでは添付ファイルを追加できません"})
     def operation(claims):
         profile = get_user(claims["sub"])
         display = profile.get("display_name") if profile else _current_user(event)
@@ -181,6 +202,8 @@ def handle_attachment_download(task_id, attachment_id, event):
 
 
 def handle_attachment_delete(task_id, attachment_id, event):
+    if is_demo_user(event):
+        return create_response(403, {"message": "デモモードでは添付ファイルを削除できません"})
     def operation(claims):
         profile = get_user(claims["sub"])
         display = profile.get("display_name") if profile else _current_user(event)
@@ -206,6 +229,8 @@ def handle_user_save(body, event):
     claims = _authenticated_claims(event)
     if not claims:
         return create_response(401, {"message": "認証情報にsubがありません"})
+    if is_demo_user(event):
+        return create_response(403, {"message": "デモモードではプロフィールを変更できません"})
     if set(body) - {"display_name"}:
         return create_response(400, {"message": "display_name以外は更新できません"})
     value = body.get("display_name")
@@ -237,7 +262,7 @@ def _resolve_user(data, id_field, name_field):
 
 
 # 議事録を1件取得
-def handle_detail(minutes_id):
+def handle_detail(minutes_id, event=None):
     if not minutes_id:
         return create_response(
             400,
@@ -252,6 +277,7 @@ def handle_detail(minutes_id):
             {"message": "議事録が見つかりません"}
         )
 
+    minutes = public_item(event or {}, minutes)
     minutes["task_progress"] = _task_progress(minutes_id)
     return create_response(
         200,
@@ -260,11 +286,12 @@ def handle_detail(minutes_id):
 
 
 # DynamoDBから議事録一覧を取得
-def handle_list():
+def handle_list(event=None):
     items = get_minutes()
     tasks = get_tasks()
     for item in items:
         item["task_progress"] = _task_progress(item["minutes_id"], tasks)
+    items = [public_item(event or {}, item) for item in items]
 
     return create_response(
         200,
@@ -302,6 +329,9 @@ def handle_generate_saved(minutes_id, event):
             404,
             {"message": "議事録が見つかりません"}
         )
+    denied = _forbidden_demo(event, current_minutes)
+    if denied:
+        return denied
 
     # すでに生成済みならBedrockを再実行しない
     if current_minutes.get("ai_minutes"):
@@ -325,6 +355,10 @@ def handle_generate_saved(minutes_id, event):
             {"message": "会議内容の原文がありません"}
         )
 
+    limited, quota = _charge(event, "ai")
+    if limited:
+        return limited
+
     ai_minutes = generate_minutes(meeting_text)
 
     previous_history = current_minutes.get("change_history", [])
@@ -346,7 +380,8 @@ def handle_generate_saved(minutes_id, event):
         200,
         {
             "message": "AI議事録を作成しました",
-            "minutes": updated_minutes
+            "minutes": public_item(event, updated_minutes),
+            **({"quota": quota} if quota else {})
         }
     )
 
@@ -354,6 +389,8 @@ def handle_generate_saved(minutes_id, event):
 # DynamoDBへ議事録を保存
 def handle_save(body, event):
     body = dict(body)
+    for field in ("demo_data", "demo_owner_id", "expires_at"):
+        body.pop(field, None)
     for id_field, name_field in (("assignee_id", "assignee"), ("approver_id", "approver")):
         error = _resolve_user(body, id_field, name_field)
         if error:
@@ -405,27 +442,31 @@ def handle_save(body, event):
     # 表示用のプロジェクト名はサーバー側で設定する
     body["project_name"] = project["project_name"]
 
+    body.update(demo_metadata(event))
+    limited, quota = _charge(event, "write")
+    if limited:
+        return limited
     item = save_minutes(body, registered_by)
 
     return create_response(
         201,
         {
             "message": "議事録を保存しました",
-            "minutes": item
+            "minutes": public_item(event, item), **({"quota": quota} if quota else {})
         }
     )
 
 
 # プロジェクト一覧を取得
-def handle_project_list():
+def handle_project_list(event=None):
     return create_response(
         200,
-        {"projects": get_projects()}
+        {"projects": [public_item(event or {}, item) for item in get_projects()]}
     )
 
 
 # プロジェクトを1件取得
-def handle_project_detail(project_id):
+def handle_project_detail(project_id, event=None):
     project = get_project_by_id(project_id)
 
     if not project:
@@ -443,8 +484,8 @@ def handle_project_detail(project_id):
     return create_response(
         200,
         {
-            "project": project,
-            "minutes": related_minutes
+            "project": public_item(event or {}, project),
+            "minutes": [public_item(event or {}, item) for item in related_minutes]
         }
     )
 
@@ -452,6 +493,8 @@ def handle_project_detail(project_id):
 # プロジェクトを登録
 def handle_project_save(body, event):
     body = dict(body)
+    for field in ("demo_data", "demo_owner_id", "expires_at"):
+        body.pop(field, None)
     error = _resolve_user(body, "manager_id", "manager")
     if error:
         return error
@@ -505,13 +548,17 @@ def handle_project_save(body, event):
     )
 
     created_by = _current_user(event)
+    body.update(demo_metadata(event))
+    limited, quota = _charge(event, "write")
+    if limited:
+        return limited
     project = save_project(body, created_by)
 
     return create_response(
         201,
         {
             "message": "プロジェクトを登録しました",
-            "project": project
+            "project": public_item(event, project), **({"quota": quota} if quota else {})
         }
     )
 
@@ -544,6 +591,9 @@ def handle_project_update(project_id, body, event):
     current = get_project_by_id(project_id)
     if not current:
         return create_response(404, {"message": "プロジェクトが見つかりません"})
+    denied = _forbidden_demo(event, current)
+    if denied:
+        return denied
     allowed = {"project_name", "manager", "manager_id", "status", "start_date", "end_date", "description"}
     if set(body) - allowed:
         return create_response(400, {"message": "更新できない項目が含まれています"})
@@ -562,20 +612,26 @@ def handle_project_update(project_id, body, event):
     changed, history = _history(current, updates, _current_user(event))
     if not changed:
         return create_response(200, {"message": "変更はありません", "project": current})
+    limited, quota = _charge(event, "write")
+    if limited:
+        return limited
     try:
         project = update_project(project_id, {k: updates[k] for k in changed}, history)
-        if "project_name" in changed:
+        if "project_name" in changed and not is_demo_user(event):
             sync_project_name(project_id, project["project_name"])
             sync_tasks_project(project_id, project["project_name"])
     except ClientError:
         return create_response(500, {"message": "関連データの更新中に失敗しました。再度お試しください"})
-    return create_response(200, {"message": "更新しました", "project": project})
+    return create_response(200, {"message": "更新しました", "project": public_item(event, project), **({"quota": quota} if quota else {})})
 
 
 def handle_minutes_update(minutes_id, body, event):
     current = get_minutes_by_id(minutes_id)
     if not current:
         return create_response(404, {"message": "議事録が見つかりません"})
+    denied = _forbidden_demo(event, current)
+    if denied:
+        return denied
     allowed = {"project_id", "meeting_name", "meeting_date", "assignee", "assignee_id", "approver", "approver_id", "raw_minutes"}
     if set(body) - allowed:
         return create_response(400, {"message": "更新できない項目が含まれています"})
@@ -610,6 +666,9 @@ def handle_minutes_update(minutes_id, body, event):
     changed, history = _history(current, updates, _current_user(event), "raw_minutes")
     if not changed:
         return create_response(200, {"message": "変更はありません", "minutes": current})
+    limited, quota = _charge(event, "write")
+    if limited:
+        return limited
     if raw_changed:
         history["operations"] = ["raw_minutes_changed"]
         if current.get("ai_minutes"):
@@ -617,9 +676,9 @@ def handle_minutes_update(minutes_id, body, event):
     if "status" in changed:
         history["system_changed_fields"] = ["status"]
     updated = update_minutes(minutes_id, {k: updates[k] for k in changed}, history)
-    if "project_id" in changed:
+    if "project_id" in changed and not is_demo_user(event):
         sync_tasks_project(project["project_id"], project["project_name"], minutes_id)
-    return create_response(200, {"message": "更新しました", "minutes": updated})
+    return create_response(200, {"message": "更新しました", "minutes": public_item(event, updated), **({"quota": quota} if quota else {})})
 
 
 # 議事録の状態を更新
@@ -637,6 +696,9 @@ def handle_update_status(minutes_id, body, event):
             404,
             {"message": "議事録が見つかりません"}
         )
+    denied = _forbidden_demo(event, current_minutes)
+    if denied:
+        return denied
 
     new_status = body.get("status")
     rejection_reason = body.get("rejection_reason", "").strip()
@@ -682,6 +744,9 @@ def handle_update_status(minutes_id, body, event):
             400,
             {"message": "差し戻し理由を入力してください"}
         )
+    limited, quota = _charge(event, "write")
+    if limited:
+        return limited
 
     claims = (
         event.get("requestContext", {})
@@ -703,7 +768,7 @@ def handle_update_status(minutes_id, body, event):
         200,
         {
             "message": "状態を更新しました",
-            "minutes": updated_minutes
+            "minutes": public_item(event, updated_minutes), **({"quota": quota} if quota else {})
         }
     )
 
@@ -762,21 +827,23 @@ def _validate_task(data, require_all=True):
         return "優先度が正しくありません", ["priority"]
     return None, []
 
-def handle_task_list(filters):
+def handle_task_list(filters, event=None):
     allowed = {key: filters[key] for key in ("project_id", "assignee", "status", "source_minutes_id") if filters.get(key)}
     if allowed.get("status") and allowed["status"] not in TASK_STATUSES | LEGACY_TASK_STATUSES:
         return create_response(400, {"message": "チケットの状態が正しくありません"})
-    return create_response(200, {"tasks": get_tasks(allowed)})
+    return create_response(200, {"tasks": [public_item(event or {}, item) for item in get_tasks(allowed)]})
 
-def handle_task_detail(task_id):
+def handle_task_detail(task_id, event=None):
     task = get_task_by_id(task_id)
     if not task:
         return create_response(404, {"message": "チケットが見つかりません"})
     task["attachments"] = task.get("attachments") if isinstance(task.get("attachments"), list) else []
-    return create_response(200, {"task": task})
+    return create_response(200, {"task": public_item(event or {}, task)})
 
 def handle_task_save(body, event):
     body = dict(body)
+    for field in ("demo_data", "demo_owner_id", "expires_at"):
+        body.pop(field, None)
     error = _resolve_user(body, "assignee_id", "assignee")
     if error:
         return error
@@ -797,13 +864,20 @@ def handle_task_save(body, event):
         data["source_type"] = "manual"
     data["project_id"] = minutes["project_id"]
     data["project_name"] = minutes["project_name"]
+    data.update(demo_metadata(event))
+    limited, quota = _charge(event, "write")
+    if limited:
+        return limited
     task = save_task(data, _current_user(event))
-    return create_response(201, {"message": "チケットを登録しました", "task": task})
+    return create_response(201, {"message": "チケットを登録しました", "task": public_item(event, task), **({"quota": quota} if quota else {})})
 
 def handle_task_update(task_id, body, event):
     current = get_task_by_id(task_id)
     if not current:
         return create_response(404, {"message": "チケットが見つかりません"})
+    denied = _forbidden_demo(event, current)
+    if denied:
+        return denied
     unknown = set(body) - TASK_EDITABLE_FIELDS
     if unknown:
         return create_response(400, {"message": "更新できない項目が含まれています", "fields": sorted(unknown)})
@@ -825,10 +899,13 @@ def handle_task_update(task_id, body, event):
     changed, history = _history(current, updates, _current_user(event))
     if not changed:
         return create_response(200, {"message": "変更はありません", "task": current})
+    limited, quota = _charge(event, "write")
+    if limited:
+        return limited
     try:
         task = update_task(task_id, {k: updates[k] for k in changed}, history)
     except ClientError as error:
         if error.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
             return create_response(404, {"message": "チケットが見つかりません"})
         raise
-    return create_response(200, {"message": "チケットを更新しました", "task": task})
+    return create_response(200, {"message": "チケットを更新しました", "task": public_item(event, task), **({"quota": quota} if quota else {})})

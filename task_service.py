@@ -47,6 +47,9 @@ def save_task(task_data, created_by):
         item["assignee_id"] = task_data["assignee_id"]
     if task_data.get("source_todo_index") is not None:
         item["source_todo_index"] = str(task_data["source_todo_index"])
+    for field in ("demo_data", "demo_owner_id", "expires_at"):
+        if field in task_data:
+            item[field] = task_data[field]
     table.put_item(Item=item)
     return item
 

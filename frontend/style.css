@@ -2034,3 +2034,10 @@ body { font-size: var(--app-font-size); line-height: 1.45; }
     .detail-tabs { overflow-x: auto; }
     .detail-tabs button { flex: 0 0 auto; white-space: nowrap; }
 }
+.demo-mode-notice { position: sticky; top: 0; z-index: 1000; padding: .55rem 1rem; text-align: center;
+  color: #543a00; background: #fff4cc; border-bottom: 1px solid #e4c65a; font-size: .9rem; }
+.demo-mode:not(.demo-editable) #edit-button,
+.demo-mode:not(.demo-editable) #approval-area,
+.demo-mode:not(.demo-editable) #generate-button,
+.demo-mode #attachment-confirm, .demo-mode .attachment-picker,
+.demo-mode #upload-button, .demo-mode #profile-form { display: none !important; }
