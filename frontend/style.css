@@ -1348,6 +1348,15 @@ button:focus-visible,a:focus-visible,.profile-link:focus-visible { outline:3px s
     }
     .filter-add-wrap { justify-content: flex-start; margin: 7px 0 5px; }
     .filter-actions { margin: 5px 0 6px; }
+    #option-details > label {
+        display: flex;
+        align-items: flex-start;
+        flex-direction: column;
+    }
+    #sort {
+        width: 360px;
+        max-width: 100%;
+    }
 }
 
 /* ========================================
@@ -1876,6 +1885,7 @@ body { font-size: var(--app-font-size); line-height: 1.45; }
     }
     .filter-actions { flex-wrap: wrap; }
     .filter-actions button { min-height: 44px; }
+    #sort { width: 100%; }
 
     .table-wrapper,
     .attachment-table-wrap {

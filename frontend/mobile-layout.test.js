@@ -77,6 +77,18 @@ test("PC とモバイルのフィルター配置を専用メディアクエリ�
     assert.doesNotMatch(mobile, /grid-template-columns: 200px 464px 32px;/);
 });
 
+test("並べ替えだけをPCでは固定幅、モバイルでは全幅にする", async () => {
+    const css = await readFile(new URL("style.css", import.meta.url), "utf8");
+    const desktopStart = css.indexOf("@media (min-width: 769px)");
+    const mobileStart = css.indexOf("@media (max-width: 768px)");
+    const desktop = css.slice(desktopStart, mobileStart);
+    const mobile = css.slice(mobileStart);
+
+    assert.match(desktop, /#option-details > label \{[\s\S]*?flex-direction: column;/);
+    assert.match(desktop, /#sort \{[\s\S]*?width: 360px;[\s\S]*?max-width: 100%;/);
+    assert.match(mobile, /#sort \{ width: 100%; \}/);
+});
+
 test("モバイルの共通文字サイズと入力欄の自動ズーム対策を維持する", async () => {
     const css = await readFile(new URL("style.css", import.meta.url), "utf8");
     const mobile = css.slice(css.indexOf("@media (max-width: 768px)"));
