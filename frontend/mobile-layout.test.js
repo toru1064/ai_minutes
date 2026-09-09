@@ -24,3 +24,17 @@ test("一覧カードは textContent と DOM API で組み立てる", async () =
     assert.match(source, /textContent/);
     assert.doesNotMatch(source, /innerHTML/);
 });
+
+test("モバイルの動的フィルターは二段の条件カードとして表示する", async () => {
+    const source = await readFile(new URL("dynamic-filters.js", import.meta.url), "utf8");
+    const css = await readFile(new URL("style.css", import.meta.url), "utf8");
+    const mobile = css.slice(css.indexOf("@media (max-width: 768px)"));
+
+    assert.match(source, /remove\.textContent="×"/);
+    assert.match(mobile, /\.filter-row > input\[type="checkbox"\][\s\S]*?grid-row: 1;/);
+    assert.match(mobile, /\.filter-row > strong[\s\S]*?white-space: nowrap;/);
+    assert.match(mobile, /\.filter-row > select:not\(\.filter-value\)[\s\S]*?grid-row: 2;/);
+    assert.match(mobile, /\.filter-row > \.filter-value[\s\S]*?grid-row: 2;/);
+    assert.match(mobile, /\.filter-row > \.filter-remove[\s\S]*?grid-row: 1;/);
+    assert.match(mobile, /\.filter-row > \.filter-remove::after[\s\S]*?content: "削除";/);
+});
