@@ -1,5 +1,5 @@
 import {
-    getCurrentUser,
+    getCurrentUser, applyDemoMode,
     logout
 } from "./auth.js";
 import {setProfileDisplay, setUserDisplay, renderChangeHistory, minutesHistory} from "./display-utils.js";
@@ -154,6 +154,7 @@ async function initialize() {
 
         currentMinutes =
             data.minutes;
+        applyDemoMode(currentUser, currentMinutes);
 
         await loadRelatedTasks();
         displayMinutes(currentMinutes);
@@ -579,6 +580,7 @@ async function updateStatus(newStatus, reason = "") {
 
         currentMinutes =
             data.minutes;
+        applyDemoMode(currentUser, currentMinutes);
 
         displayMinutes(currentMinutes);
         rejectionArea.hidden = true;

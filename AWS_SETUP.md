@@ -80,3 +80,15 @@ HTTP API の CORS は既存フロントエンドオリジンのみを許可し�
 デプロイZIPにはアプリケーションの全Pythonファイル、すなわち `lambda_function.py`、`attachment_service.py`、`dynamodb_service.py`、`task_service.py`、`project_service.py`、`user_service.py`、`bedrock_service.py` と、`requirements.txt` から導入した依存パッケージを含めます（テスト、frontend、文書は不要です）。
 
 添付メタデータは既存 `ai-tasks` 項目の `attachments` 属性へ保存されます。テーブル、パーティションキー、GSI、キャパシティ設定の変更やデータ移行は不要です。既存項目に `attachments` がなければ空配列として扱われます。
+
+## 制限付きデモユーザー（DemoUser）
+
+1. Cognito ユーザープールの「グループ」で `DemoUser` を作成し、公開専用ユーザーを作成して同グループへ追加します。デモアカウントのパスワードは GitHub やソースコードへコミットしないでください。
+2. DynamoDB の `ai-minutes`（プロジェクトと議事録）および `ai-tasks`（チケット）で、TTL 属性名を Number 型の `expires_at` として有効化します。TTL の削除は非同期であり、未設定でもアプリは動作します。既存項目の移行は不要です。
+3. Lambda ZIP へ `demo_access.py` を追加し、`lambda_function.py`、`dynamodb_service.py`、`project_service.py`、`task_service.py`、`attachment_service.py`、`user_service.py`、`bedrock_service.py` と依存パッケージを更新します。
+4. `ai-users` に対する既存権限へ `dynamodb:UpdateItem` を追加します。日次 AI（3回）・通常操作（30回）カウンターの条件付き原子更新に使用します。Bedrock 呼び出し失敗も、実行を試行したため AI 回数を消費します。
+5. API Gateway の新規ルート、S3 CORS、バケット設定、Bedrock 権限の変更はありません。既存ルートすべてに Cognito JWT Authorizer が設定され、`sub` と `cognito:groups` が Lambda に届くことを確認します。
+
+DemoUser が初めて `GET /users/me` または `GET /users` を呼び出した際、`ai-users` に表示名「デモユーザー」の初期プロフィールを条件付きで作成します。JWT の `sub` だけをキーに使用し、既存プロフィールは上書きせず、日次操作回数にも加算しません。デモユーザーの `PUT /users/me` は引き続き禁止されます。
+
+動作確認では、通常ユーザーの従来操作、DemoUser の一覧・詳細・添付ダウンロード、デモデータ作成と所有データ更新、通常データ更新の403、添付追加・削除とプロフィール更新の403、AI 4回目と通常操作31回目の429、24時間後のTTL値を確認してください。

@@ -1,7 +1,7 @@
 import { UserManager } from "oidc-client-ts";
 import {initializeNavigationOnce} from "./navigation.js";
 
-initializeNavigationOnce();
+if (typeof document !== "undefined") initializeNavigationOnce();
 
 
 // Cognitoのログイン画面用ドメイン
@@ -31,6 +31,35 @@ const cognitoConfig = {
 // ログイン状態を管理
 export const userManager = new UserManager(cognitoConfig);
 
+export function cognitoGroups(user) {
+    let groups = user?.profile?.["cognito:groups"] ?? [];
+    if (typeof groups === "string") {
+        try { groups = JSON.parse(groups); } catch { groups = groups.replace(/^\[|\]$/g, "").split(","); }
+    }
+    return Array.isArray(groups) ? groups.map(value => String(value).trim()) : [];
+}
+
+export function isDemoUser(user) {
+    return cognitoGroups(user).includes("DemoUser");
+}
+
+export function applyDemoMode(user, item) {
+    if (typeof document === "undefined" || !isDemoUser(user)) return false;
+    document.body.classList.add("demo-mode");
+    document.body.classList.toggle("demo-editable", item?.can_demo_edit === true);
+    if (!document.getElementById("demo-mode-notice")) {
+        const mainContent = document.querySelector(".main-content");
+        if (!mainContent) return false;
+        const notice = document.createElement("div");
+        notice.id = "demo-mode-notice";
+        notice.className = "demo-mode-notice";
+        notice.setAttribute("role", "status");
+        notice.textContent = "デモモード：サンプルデータは閲覧のみです。作成したデモデータは24時間後に削除されます。";
+        mainContent.prepend(notice);
+    }
+    return item?.can_demo_edit === true;
+}
+
 
 // Cognitoのログイン画面へ移動
 export async function login() {
@@ -41,7 +70,10 @@ export async function login() {
 // 現在ログインしているユーザーを取得
 export async function getCurrentUser() {
     const user = await userManager.getUser();
-    if (!user || user.expired || user._profileLoaded) return user;
+    if (!user || user.expired || user._profileLoaded) {
+        if (user) applyDemoMode(user);
+        return user;
+    }
     user._profileLoaded = true;
     try {
         const response = await fetch("https://ba2lg9ckm9.execute-api.ap-northeast-1.amazonaws.com/users/me", {
@@ -54,6 +86,7 @@ export async function getCurrentUser() {
     } catch {
         // プロフィールAPIの障害時もOIDCクレームによる従来表示を維持する。
     }
+    applyDemoMode(user);
     return user;
 }
 
