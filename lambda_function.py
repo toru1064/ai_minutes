@@ -59,6 +59,18 @@ def create_response(status_code, body):
 
 
 def lambda_handler(event, context):
+    try:
+        return _dispatch(event)
+    except json.JSONDecodeError:
+        return create_response(400, {"message": "リクエストの形式が正しくありません"})
+    except Exception:
+        # Do not include the event, request body, claims, identifiers, or the
+        # exception text: those can contain credentials or personal data.
+        LOGGER.exception("Unhandled Lambda request failure")
+        return create_response(500, {"message": "サーバー内部でエラーが発生しました"})
+
+
+def _dispatch(event):
     # API Gateway経由の場合はbodyをJSONに変換
     if "body" in event:
         body = json.loads(event["body"] or "{}")
@@ -632,6 +644,7 @@ def handle_project_update(project_id, body, event):
             sync_project_name(project_id, project["project_name"])
             sync_tasks_project(project_id, project["project_name"])
     except ClientError:
+        LOGGER.exception("Project related-data update failed")
         return create_response(500, {"message": "関連データの更新中に失敗しました。再度お試しください"})
     return create_response(200, {"message": "更新しました", "project": public_item(event, project), **({"quota": quota} if quota else {})})
 
