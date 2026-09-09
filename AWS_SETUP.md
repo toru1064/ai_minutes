@@ -92,3 +92,80 @@ HTTP API の CORS は既存フロントエンドオリジンのみを許可し�
 DemoUser が初めて `GET /users/me` または `GET /users` を呼び出した際、`ai-users` に表示名「デモユーザー」の初期プロフィールを条件付きで作成します。JWT の `sub` だけをキーに使用し、既存プロフィールは上書きせず、日次操作回数にも加算しません。デモユーザーの `PUT /users/me` は引き続き禁止されます。
 
 動作確認では、通常ユーザーの従来操作、DemoUser の一覧・詳細・添付ダウンロード、デモデータ作成と所有データ更新、通常データ更新の403、添付追加・削除とプロフィール更新の403、AI 4回目と通常操作31回目の429、24時間後のTTL値を確認してください。
+
+## フロントエンドの S3 + CloudFront 公開
+
+以下はコンソールと AWS CLI で今後行う手順です。このリポジトリの変更は既存 AWS リソースを作成・変更・削除しません。カスタムドメインは任意であり、CloudFront の割り当てドメインだけで公開できます。
+
+### 初回構築
+
+1. フロントエンド専用 S3 バケットを選択または作成し、**ブロックパブリックアクセスを4項目とも有効**、ACL を無効にします。S3 静的ウェブサイトホスティングは有効にせず、静的ウェブサイトエンドポイントをオリジンにしません。バケット名はソースコードへ記載しません。
+2. CloudFront ディストリビューションを作成し、通常の S3 バケットオリジンを選択します。Origin Access Control (OAC) を新規作成または選択し、署名動作を「常に署名」にします。Default Root Object は `index.html`、Viewer protocol policy は **Redirect HTTP to HTTPS**（より厳格にする場合は HTTPS only）にします。SPA 用の 403/404 から `index.html` へのカスタムエラーレスポンスは設定しません。このアプリは複数 HTML 構成です。
+3. コンソールが提示する OAC 用ポリシーをバケットへ設定します。少なくとも次のように、当該ディストリビューションからの `s3:GetObject` のみに限定します（値は置換します）。
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Sid": "AllowCloudFrontReadOnly",
+    "Effect": "Allow",
+    "Principal": {"Service": "cloudfront.amazonaws.com"},
+    "Action": "s3:GetObject",
+    "Resource": "arn:aws:s3:::FRONTEND_BUCKET/*",
+    "Condition": {"StringEquals": {"AWS:SourceArn": "arn:aws:cloudfront::ACCOUNT_ID:distribution/DISTRIBUTION_ID"}}
+  }]
+}
+```
+
+4. Default behavior は `GET, HEAD`（必要なら `OPTIONS`）だけを許可し、圧縮を有効にします。まず CloudFront managed cache policy **CachingOptimized** を利用できます。更新頻度の高い HTML は短い TTL または別 behavior（`*.html`）で **CachingDisabled** を選ぶと安全です。ハッシュ付きの `assets/*` は長期キャッシュ可能です。HTML 更新時は後述の invalidation を必ず実施します。
+5. Viewer response headers policy には managed **SecurityHeadersPolicy** を推奨します。少なくとも HSTS、`X-Content-Type-Options: nosniff`、`X-Frame-Options`、`Referrer-Policy` を確認します。CSP は Cognito、既存 API Gateway、必要な AWS エンドポイントへの接続を許可する値を検証してからカスタムポリシーで段階導入してください。未検証の CSP を一律適用して認証や API を壊さないようにします。
+6. 初回ファイルをアップロードし、ディストリビューションのデプロイ完了後、`https://CLOUDFRONT_DOMAIN/` と各 `*.html` を直接確認します。
+7. CloudFront URL が確定してから、Cognito と API Gateway を次項の順で設定します。
+
+### Cognito の許可 URL
+
+Cognito User Pool の対象 App Client の Hosted UI 設定で、次の **完全一致 URL** を両方の一覧に追加します。開発用 URL は削除しません。App Client Secret は作成・配布せず、既存の Authorization Code + PKCE 構成を維持します。
+
+- Allowed callback URLs: `http://localhost:5500/`、`https://CLOUDFRONT_DOMAIN/`
+- Allowed sign-out URLs: `http://localhost:5500/`、`https://CLOUDFRONT_DOMAIN/`
+
+フロントエンドはブラウザが現在表示している `window.location.origin` の直下（末尾 `/` 付き）だけを callback/sign-out URL に使います。クエリ、Local Storage、外部入力は戻り先の生成に使いません。
+
+### API Gateway CORS
+
+既存 HTTP API の CORS 設定を開き、Allowed origins に次の2件を**個別指定**してステージへ反映します。
+
+- 開発: `http://localhost:5500`
+- 本番: `https://CLOUDFRONT_DOMAIN`（Origin なので末尾 `/` なし）
+
+Allowed methods は既存機能に必要な `GET,POST,PATCH,PUT,DELETE,OPTIONS`、Allowed headers は `Authorization,Content-Type` を維持します。認証付き通信のため Allowed origins に `*` を使わず、`Access-Control-Allow-Credentials` が必要な構成でもワイルドカードを使いません。既存 Cognito JWT Authorizer、Lambda 認可、所有権判定、DemoUser 制限、AI/通常操作回数、TTL、添付制限は変更しません。変更後は API の対象ステージへデプロイし、localhost と CloudFront の双方で preflight と認証付き API を確認します。API Gateway は東京リージョン (`ap-northeast-1`) の既存 API を使用します。
+
+### AWS CLI による初回アップロード（Windows PowerShell）
+
+事前に AWS CLI の認証プロファイルと既定リージョンを設定します。S3 バケット操作ではバケット所在リージョン（例: `ap-northeast-1`）を明示します。CloudFront はグローバルサービスのため invalidation コマンドにリージョン指定は不要です。
+
+```powershell
+$BucketName = "your-private-frontend-bucket"
+$DistributionId = "YOUR_DISTRIBUTION_ID"
+npm ci
+npm run build
+aws s3 sync dist/ "s3://$BucketName" --delete --region ap-northeast-1
+aws cloudfront create-invalidation --distribution-id $DistributionId --paths "/*"
+```
+
+`--delete` が削除するのは、指定したフロントエンド用バケットの同期先に存在する一方で `dist/` に存在しないオブジェクトだけです。他のバケットやローカルファイルは削除しません。ただし同じバケットに別用途のオブジェクトを混在させないでください。
+
+アップロード後、CloudFront URL 取得 → Cognito callback/sign-out URL 追加 → API Gateway CORS Origin 追加・ステージ反映 → CloudFront 各ページと認証/API の確認、の順で完了させます。
+
+### 2回目以降の更新（Windows PowerShell）
+
+```powershell
+$BucketName = "your-private-frontend-bucket"
+$DistributionId = "YOUR_DISTRIBUTION_ID"
+npm ci
+npm run build
+aws s3 sync dist/ "s3://$BucketName" --delete --region ap-northeast-1
+aws cloudfront create-invalidation --distribution-id $DistributionId --paths "/*"
+```
+
+通常更新では S3/CloudFront/Cognito/API Gateway の再作成は不要です。全パス invalidation により HTML を含む古いキャッシュを破棄します。Origin やドメインを変更した場合だけ、Cognito の完全一致 URL と API Gateway の明示 Origin を先に追加し、動作確認後に旧値を整理します。

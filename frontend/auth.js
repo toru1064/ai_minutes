@@ -8,6 +8,15 @@ if (typeof document !== "undefined") initializeNavigationOnce();
 const cognitoDomain =
     "https://ap-northeast-1idepomshu.auth.ap-northeast-1.amazoncognito.com";
 
+// The browser's own origin is the only source of truth for Cognito return URLs.
+// Using URL with an absolute path also guarantees one, and only one, trailing slash.
+export function applicationRoot(browserLocation) {
+    return new URL("/", browserLocation.origin).href;
+}
+
+const applicationRootUrl = typeof window === "undefined"
+    ? undefined
+    : applicationRoot(window.location);
 
 // Cognitoの接続設定
 const cognitoConfig = {
@@ -18,7 +27,7 @@ const cognitoConfig = {
         "47v94275ovlr8s83d8ihehgapi",
 
     redirect_uri:
-        "http://localhost:5500/",
+        applicationRootUrl,
 
     response_type:
         "code",
@@ -122,7 +131,7 @@ export async function logout() {
 
     logoutUrl.searchParams.set(
         "logout_uri",
-        "http://localhost:5500/"
+        applicationRootUrl
     );
 
     window.location.href = logoutUrl.toString();
