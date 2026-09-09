@@ -1818,30 +1818,33 @@ body { font-size: var(--app-font-size); line-height: 1.45; }
 
     #filter-rows {
         display: grid;
-        gap: 7px;
-        margin: 7px 0;
+        gap: 6px;
+        margin: 6px 0;
     }
     .dynamic-filters {
-        padding: 8px;
+        padding: 10px;
     }
     .free-search {
-        gap: 4px;
+        gap: 6px;
         margin-bottom: 8px;
     }
     .free-search input {
         min-height: var(--mobile-control-height);
     }
-    .free-search > label,
-    .dynamic-filters > summary { font-size: 16px; }
+    .free-search,
+    .dynamic-filters summary { font-size: 16px; }
+    .dynamic-filters summary { margin: 4px 0; }
+    #filter-details { margin-bottom: 4px; }
     .filter-row {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
         align-items: center;
-        gap: 8px;
+        column-gap: 6px;
+        row-gap: 6px;
         width: 100%;
         min-width: 0;
         margin: 0;
-        padding: 8px;
+        padding: 6px;
         border: 1px solid #d7e1e8;
         border-radius: 6px;
         background: #f7fafc;
@@ -1853,6 +1856,7 @@ body { font-size: var(--app-font-size); line-height: 1.45; }
         align-items: center;
         min-width: 0;
         gap: 6px;
+        min-height: 32px;
     }
     .filter-enabled {
         flex: 0 0 auto;
@@ -1874,7 +1878,7 @@ body { font-size: var(--app-font-size); line-height: 1.45; }
         display: grid;
         grid-template-columns: minmax(0, 38fr) minmax(0, 62fr);
         align-items: center;
-        gap: 8px;
+        gap: 6px;
         min-width: 0;
     }
     .filter-operator {
@@ -1900,29 +1904,30 @@ body { font-size: var(--app-font-size); line-height: 1.45; }
         grid-row: 1;
         justify-self: end;
         flex: 0 0 auto;
-        min-width: 48px;
-        min-height: 36px;
-        padding: 4px 8px;
-        border: 1px solid #d6aaaa;
-        border-radius: 4px;
-        background: #fff;
+        display: grid;
+        place-items: center;
+        width: 40px;
+        min-width: 40px;
+        min-height: 40px;
+        padding: 5px;
+        border: 0;
+        background: transparent;
         color: #9b3030;
-        font-size: 0;
+        font-size: 20px;
         line-height: 1.4;
-        white-space: nowrap;
     }
     .filter-remove::after {
-        content: "削除";
-        font-size: 13px;
+        content: none;
     }
     .filter-actions { flex-wrap: wrap; }
-    .filter-add-wrap { margin: 6px 0 4px; }
+    .filter-add-wrap { margin: 4px 0; }
     .filter-add-wrap select,
     .filter-actions button {
         min-height: var(--mobile-control-height);
         font-size: 14px;
     }
-    .filter-actions { gap: 7px; margin: 4px 0 6px; }
+    .filter-actions { gap: 6px; margin: 4px 0; }
+    #option-details { margin-top: 2px; }
     #sort { width: 100%; }
 
     .table-wrapper,
