@@ -30,11 +30,21 @@ test("モバイルの動的フィルターは二段の条件カードとして�
     const css = await readFile(new URL("style.css", import.meta.url), "utf8");
     const mobile = css.slice(css.indexOf("@media (max-width: 768px)"));
 
-    assert.match(source, /remove\.textContent="×"/);
-    assert.match(mobile, /\.filter-row > input\[type="checkbox"\][\s\S]*?grid-row: 1;/);
-    assert.match(mobile, /\.filter-row > strong[\s\S]*?white-space: nowrap;/);
-    assert.match(mobile, /\.filter-row > select:not\(\.filter-value\)[\s\S]*?grid-row: 2;/);
-    assert.match(mobile, /\.filter-row > \.filter-value[\s\S]*?grid-row: 2;/);
-    assert.match(mobile, /\.filter-row > \.filter-remove[\s\S]*?grid-row: 1;/);
-    assert.match(mobile, /\.filter-row > \.filter-remove::after[\s\S]*?content: "削除";/);
+    assert.match(source, /heading\.className="filter-heading"/);
+    assert.match(mobile, /\.filter-top \{[\s\S]*?display: flex;[\s\S]*?justify-content: space-between;/);
+    assert.match(mobile, /\.filter-heading \{[\s\S]*?display: flex;/);
+    assert.match(mobile, /\.filter-name \{[\s\S]*?font-size: 14px;[\s\S]*?white-space: nowrap;/);
+    assert.match(mobile, /\.filter-operator \{[\s\S]*?grid-row: 2;/);
+    assert.match(mobile, /\.filter-value-group \{[\s\S]*?grid-row: 2;/);
+    assert.match(mobile, /\.filter-remove \{[\s\S]*?font-size: 0;/);
+    assert.match(mobile, /\.filter-remove::after[\s\S]*?content: "削除";/);
+});
+
+test("モバイルの共通文字サイズと入力欄の自動ズーム対策を維持する", async () => {
+    const css = await readFile(new URL("style.css", import.meta.url), "utf8");
+    const mobile = css.slice(css.indexOf("@media (max-width: 768px)"));
+    assert.match(mobile, /--mobile-page-title-size: 22px;/);
+    assert.match(mobile, /--mobile-section-title-size: 16px;/);
+    assert.match(mobile, /--mobile-body-size: 14px;/);
+    assert.match(mobile, /:is\(\.list-page, \.register-page, \.detail-page, \.dashboard-page\) input:not\(\[type="checkbox"\]\):not\(\[type="radio"\]\),[\s\S]*?font-size: 16px;/);
 });

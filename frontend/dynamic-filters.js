@@ -43,17 +43,20 @@ export function createDynamicFilters({fields, sorts, defaultSort, onApply}) {
     const addRow = state => {
         const field = fields[state.field]; if (!field) return;
         const row = document.createElement("div"); row.className = "filter-row"; row.dataset.field = state.field;
-        const enabled = document.createElement("input"); enabled.type="checkbox"; enabled.checked=state.enabled !== false; enabled.title="この条件を有効にする";
-        const name = document.createElement("strong"); name.textContent=field.label;
-        const operator=document.createElement("select"); operators[field.type].forEach(([v,l])=>operator.add(new Option(l,v))); operator.value=operators[field.type].some(([v])=>v===state.operator)?state.operator:operators[field.type][0][0];
+        const enabled = document.createElement("input"); enabled.type="checkbox"; enabled.className="filter-enabled"; enabled.checked=state.enabled !== false; enabled.title="この条件を有効にする";
+        const name = document.createElement("strong"); name.className="filter-name"; name.textContent=field.label;
+        const heading=document.createElement("div");heading.className="filter-heading";heading.append(enabled,name);
+        const operator=document.createElement("select"); operator.className="filter-operator"; operators[field.type].forEach(([v,l])=>operator.add(new Option(l,v))); operator.value=operators[field.type].some(([v])=>v===state.operator)?state.operator:operators[field.type][0][0];
         const value=field.options?document.createElement("select"):document.createElement("input"); value.className="filter-value";
         if(field.options){field.options.forEach(([v,l])=>value.add(new Option(l,v)));} else value.type=field.type==="date"?"date":field.type==="number"?"number":"text";
         value.value=state.value||"";
         const valueTo=document.createElement("input");valueTo.type="date";valueTo.className="filter-value-to";valueTo.value=state.valueTo||"";
+        const valueGroup=document.createElement("div");valueGroup.className="filter-value-group";valueGroup.append(value,valueTo);
         const remove=document.createElement("button");remove.type="button";remove.className="filter-remove";remove.textContent="×";remove.setAttribute("aria-label",`${field.label}フィルターを削除`);
+        const top=document.createElement("div");top.className="filter-top";top.append(heading,remove);
         const visibility=()=>{const noValue=["empty","set"].includes(operator.value);value.hidden=noValue;valueTo.hidden=operator.value!=="between";};
         operator.addEventListener("change",visibility);remove.addEventListener("click",()=>{row.remove();refreshAdd();});
-        row.append(enabled,name,operator,value,valueTo,remove);rows.appendChild(row);visibility();refreshAdd();
+        row.append(top,operator,valueGroup);rows.appendChild(row);visibility();refreshAdd();
     };
     applied.forEach(addRow); refreshAdd();
     add.addEventListener("change",()=>{if(add.value)addRow({field:add.value,enabled:true});add.value="";});
