@@ -14,9 +14,9 @@ export async function loadUsers(accessToken) {
     return data.users || [];
 }
 
-export function populateUserSelect(select, users, {selectedId = "", legacyName = "", optional = false} = {}) {
+export function populateUserSelect(select, users, {selectedId = "", legacyName = "", optional = false, emptyLabel = "未設定"} = {}) {
     select.replaceChildren();
-    if (optional) select.add(new Option("未設定", ""));
+    if (optional) select.add(new Option(emptyLabel, ""));
     if (!users.length) select.add(new Option("登録ユーザーがいません", ""));
     for (const user of users) select.add(new Option(user.display_name, user.user_id));
     if (selectedId && users.some(user => user.user_id === selectedId)) select.value = selectedId;
@@ -26,6 +26,13 @@ export function populateUserSelect(select, users, {selectedId = "", legacyName =
         select.add(option);
         select.value = "__legacy__";
     }
+}
+
+export function initializeMinutesUsers(assigneeSelect, approverSelect, users, currentUserId) {
+    populateUserSelect(assigneeSelect, users, {selectedId: currentUserId});
+    populateUserSelect(approverSelect, users, {optional: true, emptyLabel: "選択してください"});
+    approverSelect.value = "";
+    return users.some(user => user.user_id === currentUserId);
 }
 
 export function selectedUser(select, users, idField, nameField) {

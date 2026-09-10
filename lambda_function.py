@@ -300,7 +300,14 @@ def handle_detail(minutes_id, event=None):
             {"message": "議事録が見つかりません"}
         )
 
+    claims = _authenticated_claims(event or {})
+    user_id = claims.get("sub") if claims else ""
+    permissions = {
+        "can_edit": _can_edit_minutes(minutes, user_id),
+        "can_approve": bool(minutes.get("approver_id") and minutes.get("approver_id") == user_id),
+    }
     minutes = public_item(event or {}, minutes)
+    minutes["permissions"] = permissions
     minutes["task_progress"] = _task_progress(minutes_id)
     return create_response(
         200,
@@ -332,7 +339,7 @@ def handle_generate(body):
             {"message": "会議内容を入力してください"}
         )
 
-    minutes = generate_minutes(meeting_text)
+    minutes = generate_minutes(meeting_text, body.get("meeting_date"))
 
     return create_response(200, minutes)
 
@@ -382,7 +389,7 @@ def handle_generate_saved(minutes_id, event):
     if limited:
         return limited
 
-    ai_minutes = generate_minutes(meeting_text)
+    ai_minutes = generate_minutes(meeting_text, current_minutes.get("meeting_date"))
 
     previous_history = current_minutes.get("change_history", [])
     regenerated = any(
@@ -414,6 +421,9 @@ def handle_save(body, event):
     body = dict(body)
     for field in ("demo_data", "demo_owner_id", "expires_at"):
         body.pop(field, None)
+    claims = _authenticated_claims(event)
+    if not claims:
+        return create_response(401, {"message": "認証情報にsubがありません"})
     for id_field, name_field in (("assignee_id", "assignee"), ("approver_id", "approver")):
         error = _resolve_user(body, id_field, name_field)
         if error:
@@ -422,8 +432,8 @@ def handle_save(body, event):
         "project_id",
         "meeting_name",
         "meeting_date",
-        "assignee",
-        "approver",
+        "assignee_id",
+        "approver_id",
         "raw_minutes"
     ]
 
@@ -443,16 +453,8 @@ def handle_save(body, event):
             }
         )
 
-    # CognitoのJWTから登録者を取得
-    claims = (
-        event
-        .get("requestContext", {})
-        .get("authorizer", {})
-        .get("jwt", {})
-        .get("claims", {})
-    )
-
     registered_by = _current_user(event)
+    body["registered_by_id"] = claims["sub"]
 
     project = get_project_by_id(body["project_id"])
 
@@ -656,6 +658,11 @@ def handle_minutes_update(minutes_id, body, event):
     denied = _forbidden_demo(event, current)
     if denied:
         return denied
+    claims = _authenticated_claims(event)
+    if not claims:
+        return create_response(401, {"message": "認証情報にsubがありません"})
+    if not _can_edit_minutes(current, claims["sub"]):
+        return create_response(403, {"message": "この議事録を編集する権限がありません"})
     allowed = {"project_id", "meeting_name", "meeting_date", "assignee", "assignee_id", "approver", "approver_id", "raw_minutes"}
     if set(body) - allowed:
         return create_response(400, {"message": "更新できない項目が含まれています"})
@@ -724,6 +731,10 @@ def handle_update_status(minutes_id, body, event):
     if denied:
         return denied
 
+    claims = _authenticated_claims(event)
+    if not claims:
+        return create_response(401, {"message": "認証情報にsubがありません"})
+
     new_status = body.get("status")
     rejection_reason = body.get("rejection_reason", "").strip()
 
@@ -763,6 +774,14 @@ def handle_update_status(minutes_id, body, event):
             {"message": "現在の状態ではこの操作を実行できません"}
         )
 
+    if new_status in {"approved", "rejected"}:
+        # Legacy rows without approver_id deliberately remain unapprovable until
+        # an owner selects and saves an approver. Display names are not identity.
+        if not current_minutes.get("approver_id") or current_minutes["approver_id"] != claims["sub"]:
+            return create_response(403, {"message": "指定された承認者本人だけが承認・差し戻しできます"})
+    elif not _can_edit_minutes(current_minutes, claims["sub"]):
+        return create_response(403, {"message": "この議事録を承認申請する権限がありません"})
+
     if new_status == "rejected" and not rejection_reason:
         return create_response(
             400,
@@ -772,12 +791,6 @@ def handle_update_status(minutes_id, body, event):
     if limited:
         return limited
 
-    claims = (
-        event.get("requestContext", {})
-        .get("authorizer", {})
-        .get("jwt", {})
-        .get("claims", {})
-    )
     operated_by = _current_user(event)
 
     updated_minutes = update_minutes_status(
@@ -795,6 +808,14 @@ def handle_update_status(minutes_id, body, event):
             "minutes": public_item(event, updated_minutes), **({"quota": quota} if quota else {})
         }
     )
+
+
+def _can_edit_minutes(minutes, user_id):
+    """Use immutable IDs only; never grant legacy display-name ownership."""
+    return bool(user_id) and user_id in {
+        minutes.get("registered_by_id"), minutes.get("owner_id"),
+        minutes.get("demo_owner_id"),
+    }
 
 
 TASK_STATUSES = {"not_started", "in_progress", "completed"}

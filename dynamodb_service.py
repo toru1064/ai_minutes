@@ -88,6 +88,8 @@ def save_minutes(minutes_data, registered_by):
     for field in ("assignee_id", "approver_id"):
         if minutes_data.get(field):
             item[field] = minutes_data[field]
+    if minutes_data.get("registered_by_id"):
+        item["registered_by_id"] = minutes_data["registered_by_id"]
     for field in ("demo_data", "demo_owner_id", "expires_at"):
         if field in minutes_data:
             item[field] = minutes_data[field]
