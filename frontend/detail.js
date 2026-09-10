@@ -4,6 +4,7 @@ import {
 } from "./auth.js";
 import {setProfileDisplay, setUserDisplay, renderChangeHistory, minutesHistory} from "./display-utils.js";
 import {loadUsers,populateUserSelect,selectedUser,currentName} from "./user-select.js";
+import {canApproveMinutes, canEditMinutes} from "./minutes-permissions.js";
 
 
 // API GatewayのURL
@@ -158,6 +159,9 @@ async function initialize() {
 
         await loadRelatedTasks();
         displayMinutes(currentMinutes);
+        const editable = canEditMinutes(currentMinutes, currentUser);
+        document.getElementById("minutes-edit-button").hidden = !editable;
+        document.getElementById("raw-edit-button").hidden = !editable;
 
         detailMessage.textContent = "";
         detailContent.hidden = false;
@@ -502,6 +506,8 @@ function displayStatusButtons(status) {
     approveButton.hidden = true;
     rejectButton.hidden = true;
     document.getElementById("approved-message").hidden = true;
+    const authorizationMessage = document.getElementById("approval-authorization-message");
+    authorizationMessage.textContent = "";
 
     requestButton.disabled = false;
     approveButton.disabled = false;
@@ -516,15 +522,22 @@ function displayStatusButtons(status) {
         return;
     }
 
+    const editable = canEditMinutes(currentMinutes, currentUser);
+    const approver = canApproveMinutes(currentMinutes, currentUser);
+
     if (
         status === "draft" ||
         status === "rejected"
     ) {
         requestButton.textContent = (currentMinutes.approval_history || []).length ? "承認を再申請" : "承認を申請";
-        requestButton.hidden = false;
+        requestButton.hidden = !editable;
+        if (!editable) authorizationMessage.textContent = "議事録の所有者または登録者だけが承認を申請できます。";
     } else if (status === "pending") {
-        approveButton.hidden = false;
-        rejectButton.hidden = false;
+        approveButton.hidden = !approver;
+        rejectButton.hidden = !approver;
+        if (!approver) authorizationMessage.textContent = currentMinutes.approver_id
+            ? "指定された承認者本人だけが承認・差し戻しできます。"
+            : "承認者IDが未登録のため、所有者が承認者を選び直して保存するまで操作できません。";
     } else if (status === "approved") {
         document.getElementById("approved-message").hidden = false;
     }
@@ -573,7 +586,7 @@ async function updateStatus(newStatus, reason = "") {
 
         if (!response.ok) {
             throw new Error(
-                data.message ||
+                response.status === 403 ? "この承認操作を実行する権限がありません" : data.message ||
                 "状態の更新に失敗しました"
             );
         }

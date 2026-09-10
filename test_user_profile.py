@@ -108,6 +108,7 @@ class UserApiTest(unittest.TestCase):
         }, event(**{"cognito:groups": ["DemoUser"]}))
         self.assertEqual(response["statusCode"], 201)
         saved = save_minutes.call_args.args[0]
+        self.assertEqual(saved["registered_by_id"], "jwt-sub")
         self.assertIs(saved["demo_data"], True)
         self.assertEqual(saved["demo_owner_id"], "jwt-sub")
         self.assertEqual(saved["project_name"], "デモPJ")
