@@ -5,7 +5,7 @@ import {
     logout
 } from "./auth.js";
 import {setProfileDisplay} from "./display-utils.js";
-import {loadUsers,populateUserSelect,selectedUser} from "./user-select.js";
+import {initializeCurrentUserSelect,loadUsers,selectedUser} from "./user-select.js";
 
 
 const apiUrl =
@@ -38,8 +38,13 @@ async function initialize() {
         loginButton.hidden = true;
         logoutButton.hidden = false;
         users = await loadUsers(currentUser.access_token);
-        populateUserSelect(document.getElementById("manager"), users);
-        if (!users.length) throw new Error("登録ユーザーがいません");
+        const currentUserAvailable = initializeCurrentUserSelect(
+            document.getElementById("manager"), users, currentUser.profile?.sub
+        );
+        if (!currentUserAvailable) {
+            statusMessage.textContent = "ログイン中のユーザーを責任者として確認できません。プロフィールを確認してください";
+            registerButton.disabled = true;
+        }
         form.hidden = false;
     } catch (error) {
         console.error(error);

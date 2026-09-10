@@ -29,10 +29,33 @@ export function populateUserSelect(select, users, {selectedId = "", legacyName =
 }
 
 export function initializeMinutesUsers(assigneeSelect, approverSelect, users, currentUserId) {
-    populateUserSelect(assigneeSelect, users, {selectedId: currentUserId});
+    const currentUserAvailable = initializeCurrentUserSelect(assigneeSelect, users, currentUserId);
     populateUserSelect(approverSelect, users, {optional: true, emptyLabel: "選択してください"});
     approverSelect.value = "";
-    return users.some(user => user.user_id === currentUserId);
+    return currentUserAvailable;
+}
+
+export function initializeCurrentUserSelect(select, users, currentUserId) {
+    const found = Boolean(currentUserId) && users.some(user => user.user_id === currentUserId);
+    populateUserSelect(select, users, {
+        selectedId: found ? currentUserId : "",
+        optional: true,
+        emptyLabel: "選択してください"
+    });
+    select.value = found ? currentUserId : "";
+    return found;
+}
+
+export function initializeAiTodoAssignee(select, users, todo) {
+    const assigneeId = typeof todo?.assignee_id === "string" ? todo.assignee_id : "";
+    const found = Boolean(assigneeId) && users.some(user => user.user_id === assigneeId);
+    populateUserSelect(select, users, {
+        selectedId: found ? assigneeId : "",
+        optional: true,
+        emptyLabel: "選択してください"
+    });
+    select.value = found ? assigneeId : "";
+    return found;
 }
 
 export function selectedUser(select, users, idField, nameField) {

@@ -525,6 +525,7 @@ def handle_project_save(body, event):
         return error
     required_fields = [
         "project_name",
+        "manager_id",
         "manager",
         "start_date"
     ]
@@ -821,7 +822,7 @@ def _can_edit_minutes(minutes, user_id):
 TASK_STATUSES = {"not_started", "in_progress", "completed"}
 LEGACY_TASK_STATUSES = {"review_pending", "rejected"}
 TASK_PRIORITIES = {"low", "normal", "high", "urgent"}
-TASK_REQUIRED_FIELDS = ("source_minutes_id", "title", "assignee", "due_date")
+TASK_REQUIRED_FIELDS = ("source_minutes_id", "title", "assignee_id", "assignee", "due_date")
 TASK_EDITABLE_FIELDS = {"source_minutes_id", "title", "description", "assignee", "assignee_id", "due_date", "priority", "status", "resolution"}
 
 def _task_progress(minutes_id, tasks=None):
