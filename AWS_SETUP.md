@@ -140,6 +140,30 @@ Cognito User Pool の対象 App Client の Hosted UI 設定で、次の **完全
 
 Allowed methods は既存機能に必要な `GET,POST,PATCH,PUT,DELETE,OPTIONS`、Allowed headers は `Authorization,Content-Type` を維持します。認証付き通信のため Allowed origins に `*` を使わず、`Access-Control-Allow-Credentials` が必要な構成でもワイルドカードを使いません。既存 Cognito JWT Authorizer、Lambda 認可、所有権判定、DemoUser 制限、AI/通常操作回数、TTL、添付制限は変更しません。変更後は API の対象ステージへデプロイし、localhost と CloudFront の双方で preflight と認証付き API を確認します。API Gateway は東京リージョン (`ap-northeast-1`) の既存 API を使用します。
 
+### 添付 S3 バケットの CORS（管理者による設定が必要）
+
+ブラウザは署名付き POST の取得を API Gateway へ行った後、ファイル本体を API Gateway 経由ではなく添付用 S3 バケットへ直接 `POST` します。このため **API Gateway の CORS と添付 S3 の CORS は別設定**です。API が 200 でも S3 側に閲覧中の Origin がなければ、ブラウザは S3 の応答を遮断して `Failed to fetch` と表示します。
+
+対象は添付ファイル用バケット **`ai-minutes-attachments`** です。AWS コンソールの **Amazon S3 → バケット → ai-minutes-attachments → アクセス許可 → Cross-origin resource sharing (CORS) → 編集**を開き、次を設定してください（このリポジトリから AWS リソースは変更しません）。Origin は完全一致であり、**末尾に `/` を付けません**。署名付き POST とダウンロードに必要な最小限の `POST`、`GET`、`HEAD` だけを許可し、削除は Lambda が行うため `DELETE` や `PUT` は許可しません。
+
+```json
+[
+  {
+    "AllowedHeaders": ["*"],
+    "AllowedMethods": ["POST", "GET", "HEAD"],
+    "AllowedOrigins": [
+      "http://localhost:5500",
+      "https://d6poxps1sqgd0.cloudfront.net"
+    ],
+    "ExposeHeaders": ["ETag"]
+  }
+]
+```
+
+設定後は localhost と CloudFront の双方で、開発者ツールの Network を開いて添付操作を行います。(1) `POST /tasks/{task_id}/attachments/presign` が 200、(2) S3 バケット宛ての preflight/`POST` が CORS エラーなしで成功、(3) `POST /attachments/complete` が 201、(4) 一覧更新後にダウンロードできることを確認します。フォームの `Content-Type` ヘッダーはブラウザに境界値を生成させ、署名済みフィールド、`Content-Type`、メタデータを変更せず、ファイルを最後のフォームフィールドとして送信します。確認時も署名付き URL 全体や Authorization ヘッダーをログ、チケット、スクリーンショットへ残さないでください。
+
+既存レコードのうち `approver_id` または `registered_by_id` がないものは、表示名を Cognito ID とみなして自動移行しません。同名ユーザーへの誤認可を避けるため承認・差し戻しは拒否され、変更不可能な所有者 ID もないレコードは編集・再申請も拒否されます。必要なレコードだけを管理者が真正な Cognito ID を確認して個別移行するか、所有者 ID が既にあるレコードは画面で承認者を選び直して保存してください。DynamoDB の全件更新は行いません。
+
 ### AWS CLI による初回アップロード（Windows PowerShell）
 
 事前に AWS CLI の認証プロファイルと既定リージョンを設定します。S3 バケット操作ではバケット所在リージョン（例: `ap-northeast-1`）を明示します。CloudFront はグローバルサービスのため invalidation コマンドにリージョン指定は不要です。

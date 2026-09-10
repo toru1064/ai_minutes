@@ -6,7 +6,7 @@ import {
 } from "./auth.js";
 import {setProfileDisplay} from "./display-utils.js";
 import {setupSearchSelect} from "./search-select.js";
-import {loadUsers, populateUserSelect, selectedUser} from "./user-select.js";
+import {initializeMinutesUsers, loadUsers, selectedUser} from "./user-select.js";
 
 
 // API Gatewayの議事録登録URL
@@ -83,9 +83,14 @@ async function initializeAuth() {
             await loadProjects();
             try {
                 users = await loadUsers(currentUser.access_token);
-                populateUserSelect(assignee, users);
-                populateUserSelect(approver, users);
-                if (!users.length) registerButton.disabled = true;
+                const currentUserId = currentUser.profile?.sub;
+                const currentUserAvailable = initializeMinutesUsers(
+                    assignee, approver, users, currentUserId
+                );
+                if (!users.length || !currentUserAvailable) {
+                    statusMessage.textContent = "ログイン中のユーザーが登録ユーザー一覧に見つかりません";
+                    registerButton.disabled = true;
+                }
             } catch (error) {
                 statusMessage.textContent = error.message;
                 assignee.disabled = approver.disabled = registerButton.disabled = true;

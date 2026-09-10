@@ -5,7 +5,7 @@ import {
     logout
 } from "./auth.js";
 import {setProfileDisplay} from "./display-utils.js";
-import {loadUsers,populateUserSelect,selectedUser} from "./user-select.js";
+import {initializeCurrentUserSelect,loadUsers,selectedUser} from "./user-select.js";
 
 
 const apiUrl =
@@ -38,12 +38,16 @@ async function initialize() {
         loginButton.hidden = true;
         logoutButton.hidden = false;
         users = await loadUsers(currentUser.access_token);
-        populateUserSelect(document.getElementById("manager"), users);
-        if (!users.length) throw new Error("登録ユーザーがいません");
+        const available = initializeCurrentUserSelect(
+            document.getElementById("manager"), users, currentUser.profile?.sub
+        );
+        if (!available) throw new Error("ログイン中のユーザーが登録ユーザー一覧に見つかりません");
         form.hidden = false;
     } catch (error) {
         console.error(error);
-        userStatus.textContent = "ログイン情報を確認できませんでした";
+        statusMessage.textContent = error.message || "登録画面を準備できませんでした";
+        registerButton.disabled = true;
+        form.hidden = true;
     }
 }
 

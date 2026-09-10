@@ -9,6 +9,15 @@ def event(sub="me"):
 def body(response): return json.loads(response["body"])
 
 class AssignmentUserTest(unittest.TestCase):
+    def test_display_name_only_cannot_create_project_or_task(self):
+        project = lambda_function.handle_project_save(
+            {"project_name": "P", "manager": "デモユーザー", "start_date": "2026-01-01"}, event())
+        task = lambda_function.handle_task_save(
+            {"source_minutes_id": "m", "title": "T", "assignee": "デモユーザー",
+             "due_date": "2026-01-01"}, event())
+        self.assertEqual(project["statusCode"], 400)
+        self.assertEqual(task["statusCode"], 400)
+
     def test_invalid_assignee_is_rejected(self):
         with patch.object(lambda_function,"get_user",return_value=None):
             response=lambda_function.handle_task_save({"source_minutes_id":"m","title":"t","assignee_id":"bad","assignee":"偽名","due_date":"2026-09-05"},event())
