@@ -169,3 +169,160 @@ aws cloudfront create-invalidation --distribution-id $DistributionId --paths "/*
 ```
 
 通常更新では S3/CloudFront/Cognito/API Gateway の再作成は不要です。全パス invalidation により HTML を含む古いキャッシュを破棄します。Origin やドメインを変更した場合だけ、Cognito の完全一致 URL と API Gateway の明示 Origin を先に追加し、動作確認後に旧値を整理します。
+
+## GitHub Actions による本番自動デプロイ
+
+### 動作と変更検知
+
+Pull Request（対象ブランチ `main`）では `.github/workflows/ci.yml` だけが動作し、Node.js 22（LTS）で `npm ci`、全 JavaScript の構文確認、`npm test`、`npm run build` を、Lambda ランタイムと同じ Python 3.14 で依存関係の導入、構文確認、`python -m unittest discover -v` を実行します。このワークフローに `id-token: write` や AWS 認証ステップはなく、AWS は変更しません。Python 3.14 を `setup-python` が GitHub hosted runner に提供できない場合、ジョブを失敗させる設計です。Lambda と異なる Python 版へ暗黙にフォールバックすると互換性検証にならないためです。その場合は、GitHub runner で 3.14 が提供された後に再実行するか、Python 3.14 を備えた自己ホスト runner を明示的に採用してください。
+
+`main` への push（PR のマージを含む）では、次の path filter に一致したワークフローだけがテスト成功後にデプロイします。ローカル commit では GitHub Actions は起動しません。
+
+- フロントエンド: `frontend/**`、`package.json`、`package-lock.json`、`vite.config.js`、`.github/workflows/deploy-frontend.yml`
+- Lambda 本番コード・パッケージ設定: `lambda_function.py`、`demo_access.py`、`dynamodb_service.py`、`project_service.py`、`task_service.py`、`attachment_service.py`、`user_service.py`、`bedrock_service.py`、`requirements.txt`、`scripts/prepare_requirements.py`、`.github/workflows/deploy-lambda.yml`
+
+上記 Python ファイルは `lambda_function.py` から直接・間接に import されるローカルモジュールをすべて含みます。`test_*.py` だけの push は本番コードを変えないため Lambda を更新しません（PR 時の CI ではテストされます）。文書だけの push もデプロイしません。両方の filter に一致すれば両デプロイが独立して動作します。各 deploy workflow は `cancel-in-progress: false` の concurrency group を持つため、進行中の本番更新をキャンセルせず次の更新を待たせます。Actions 画面の **Run workflow** から各対象を `workflow_dispatch` で個別に手動実行することもできます。
+
+Git 管理中の `requirements.txt` は既存の UTF-16 LE BOM 形式を変更しません。CI と Lambda deploy は `scripts/prepare_requirements.py` で、UTF-8、UTF-8 BOM、UTF-16 LE BOM、UTF-16 BE BOMを厳密に判定し、ランナーの `${RUNNER_TEMP}` に BOM なしUTF-8の一時ファイルを生成してから pip に渡します。入力は上書きせず、内容をログへ出力せず、不正なエンコーディングではデプロイ前に失敗します。テスト用とZIP用の依存導入は同じ一時ファイルを使います。
+
+外部 Actions は供給網リスクを抑えるため、コメントに示したリリースの full commit SHA に固定しています。Dependabot 等で更新する場合も、公式リポジトリの release/tag と commit SHA を照合してから変更してください。
+
+### Repository Variables と production Environment
+
+リポジトリの **Settings → Secrets and variables → Actions → Variables** に次を Repository Variables として登録します。値は認証秘密ではありませんが、ソースへ直書きせず Actions 設定として管理します。
+
+| 名前 | 値 |
+|---|---|
+| `AWS_REGION` | `ap-northeast-1` |
+| `AWS_ROLE_ARN` | `arn:aws:iam::<AWS_ACCOUNT_ID>:role/<GITHUB_ACTIONS_ROLE_NAME>` |
+| `S3_BUCKET_NAME` | `toru1064-ai-minutes-frontend` |
+| `CLOUDFRONT_DISTRIBUTION_ID` | `ENSW5CMMOSR3O` |
+| `LAMBDA_FUNCTION_NAME` | `ai-minutes-generator` |
+
+`AWS_ACCOUNT_ID` は ARN のルーティングに使う公開可能な識別子でパスワードではありませんが、実アカウントに置換します。AWS access key、secret access key、Cognito デモユーザーのパスワード、JWT、メールパスワード、App Client Secret は GitHub の Variables/Secrets のどちらにも登録しません。アクセスキー方式へのフォールバックはしません。
+
+リポジトリの **Settings → Environments → New environment** で `production` を作成し、Deployment branches and tags を **Selected branches and tags** の `main` のみに制限します。workflow はこの Environment を指定済みです。上記5値は共通設定なので Repository Variables に置き、Environment Variables へ重複登録しません（同名値の上書きによる事故を避けるため）。必要な reviewer/wait timer は組織の運用に合わせた任意設定で、毎回承認を今回の必須条件にはしません。Environment 自体と branch restriction は公開リポジトリを含む GitHub Free で利用できますが、private/internal リポジトリにおける required reviewers 等の保護ルールはプランにより制約されるため、GitHub の現在のプラン表示を確認してください。
+
+### AWS OIDC Provider と信頼ポリシー
+
+IAM の Identity providers で OpenID Connect provider を次の値で一度だけ作成します（既に GitHub 用 provider があれば再作成不要です）。
+
+- Provider URL: `https://token.actions.githubusercontent.com`
+- Audience: `sts.amazonaws.com`
+
+次に GitHub Actions 専用 IAM role を作ります。Web identity は `token.actions.githubusercontent.com`、Audience は `sts.amazonaws.com` を選びます。デプロイ workflow は `production` Environment を使うため、従来の名前ベース subject は `repo:toru1064/ai_minutes:environment:production` です。branch 形式 `repo:toru1064/ai_minutes:ref:refs/heads/main` は Environment を使わない workflow の例であり、現在の workflow の trust policy には使いません。
+
+ただし、2026-07-15 以降に作成されたリポジトリや organization の OIDC subject customization では、owner/repository の可変名ではなく immutable owner/repository ID を含む subject が発行される可能性があります。ID 形式の具体的な文字列をリポジトリ名から推測してはいけません。初回設定時に GitHub の organization/repository OIDC subject customization 設定（REST API の OIDC subject claim customization endpoint を含む）を確認し、GitHub Actions が発行する ID token の payload の `sub` を、トークン本体をログへ出さない一時的な管理者確認手段で確認してください。確認用 workflow を残さず、JWT 全体、署名、`ACTIONS_ID_TOKEN_REQUEST_TOKEN` は出力しません。名前形式は rename に追従しない一方、immutable ID 形式は rename 後も同じ repository/owner を識別する点が異なります。実際の `sub` が ID 形式なら、下記 `<ACTUAL_GITHUB_OIDC_SUB>` を観測した完全一致値へ置換します。古い名前形式を決め打ちしないでください。
+
+信頼ポリシー（`AWS_ACCOUNT_ID`、provider ARN、`sub` を実環境で確認して置換）:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": {
+      "Federated": "arn:aws:iam::<AWS_ACCOUNT_ID>:oidc-provider/token.actions.githubusercontent.com"
+    },
+    "Action": "sts:AssumeRoleWithWebIdentity",
+    "Condition": {
+      "StringEquals": {
+        "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+        "token.actions.githubusercontent.com:sub": "<ACTUAL_GITHUB_OIDC_SUB>"
+      }
+    }
+  }]
+}
+```
+
+名前形式が実際に発行されることを確認できた場合の `<ACTUAL_GITHUB_OIDC_SUB>` は `repo:toru1064/ai_minutes:environment:production` です。`StringLike` の wildcard、任意 repository、任意 branch を許可しません。Environment の main 制限と、この subject 完全一致の両方を設定します。
+
+### GitHub Actions role の最小権限
+
+同じ専用 role を両 deploy workflow が利用する場合の inline policy 例です。`<AWS_ACCOUNT_ID>` を置換します。CloudFront ARN にも所有アカウント ID が必要です。
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "FrontendBucketMetadata",
+      "Effect": "Allow",
+      "Action": ["s3:ListBucket", "s3:GetBucketLocation"],
+      "Resource": "arn:aws:s3:::toru1064-ai-minutes-frontend"
+    },
+    {
+      "Sid": "FrontendObjects",
+      "Effect": "Allow",
+      "Action": ["s3:PutObject", "s3:DeleteObject", "s3:GetObject"],
+      "Resource": "arn:aws:s3:::toru1064-ai-minutes-frontend/*"
+    },
+    {
+      "Sid": "InvalidateFrontendDistribution",
+      "Effect": "Allow",
+      "Action": ["cloudfront:CreateInvalidation", "cloudfront:GetInvalidation"],
+      "Resource": "arn:aws:cloudfront::<AWS_ACCOUNT_ID>:distribution/ENSW5CMMOSR3O"
+    },
+    {
+      "Sid": "UpdateExistingLambdaCodeOnly",
+      "Effect": "Allow",
+      "Action": ["lambda:UpdateFunctionCode", "lambda:GetFunction", "lambda:GetFunctionConfiguration"],
+      "Resource": "arn:aws:lambda:ap-northeast-1:<AWS_ACCOUNT_ID>:function:ai-minutes-generator"
+    }
+  ]
+}
+```
+
+この role に IAM、DynamoDB、Cognito、API Gateway、Bedrock、全 S3、Lambda 作成/削除、CloudFront 作成/削除/設定変更の権限を追加しません。既存 Lambda 実行 role とは別物です。自動処理は `UpdateFunctionCode` のみで、環境変数、実行 role、timeout、memory、API Gateway を変更しません。フロントエンド同期先は `dist/` と上記1バケットだけで、invalidation は対象 distribution の `/*` だけです。
+
+### 初回設定と通常運用
+
+1. GitHub OIDC provider を確認または作成する。
+2. 実際の OIDC `sub` 形式を確認し、上記 trust policy の完全一致値で Actions 専用 role を作成する。
+3. 上記最小権限 policy を role に付ける。
+4. GitHub `production` Environment を作り、deployment branch を `main` のみにする。
+5. 5個の Repository Variables を登録する（長期 AWS credentials は登録しない）。
+6. PR を作成し、`Pull request CI` がすべて成功することを確認して `main` へ merge する。
+7. Actions で変更対象の deploy workflow のテスト、build/package、OIDC 認証、更新、最終確認が成功したことを確認する。
+
+通常は PR の CI 成功後に merge するだけです。frontend と Lambda が同時に変われば両方、片方だけなら該当側だけが実行されます。文書変更だけなら AWS workflow は起動しません。障害時の再実行は Actions の失敗 run の再実行、または該当 deploy workflow の **Run workflow**（branch は `main`）を使用します。
+
+### Actions を使わない手動デプロイ（障害時）
+
+既存の管理者用 AWS CLI profile をローカルで明示的に使用します。自動デプロイ role の credentials を保存・流用しません。フロントエンドの PowerShell 手順は前節のまま利用できます。bash の同等手順は次のとおりです。
+
+```bash
+npm ci
+npm test
+npm run build
+aws s3 sync dist/ s3://toru1064-ai-minutes-frontend --delete --region ap-northeast-1
+aws cloudfront create-invalidation --distribution-id ENSW5CMMOSR3O --paths '/*'
+```
+
+Lambda はリポジトリ外の一時ディレクトリで ZIP の直下へ実行ファイルを置きます。
+
+```bash
+work_dir="$(mktemp -d)"
+python3.14 scripts/prepare_requirements.py requirements.txt "$work_dir/requirements.txt"
+python3.14 -m pip install -r "$work_dir/requirements.txt"
+python3.14 -m unittest discover -v
+package_dir="$(mktemp -d)"
+zip_path="$work_dir/lambda-deployment.zip"
+python3.14 -m pip install -r "$work_dir/requirements.txt" --target "$package_dir"
+cp lambda_function.py demo_access.py dynamodb_service.py project_service.py task_service.py \
+  attachment_service.py user_service.py bedrock_service.py "$package_dir/"
+(cd "$package_dir" && zip -q -r "$zip_path" .)
+unzip -Z1 "$zip_path" | grep '^lambda_function.py$'
+aws lambda update-function-code --function-name ai-minutes-generator \
+  --zip-file "fileb://$zip_path" --region ap-northeast-1
+aws lambda wait function-updated-v2 --function-name ai-minutes-generator --region ap-northeast-1
+aws lambda get-function-configuration --function-name ai-minutes-generator \
+  --region ap-northeast-1 --query '[LastUpdateStatus,State]'
+rm -rf "$package_dir" "$work_dir"
+```
+
+最終出力が `Successful` と `Active` であることを確認します。この手順もコード以外の Lambda 設定を変更しません。
+
+### 費用
+
+GitHub OIDC provider、IAM role/policy、Repository Variables、Environment の作成自体に AWS の追加料金はありません。自動化のために新しい常時稼働 AWS resource は作りません。ただし実行時は、既存料金体系に従い S3 request/storage、CloudFront invalidation（無料枠超過分）、Lambda API request、および GitHub Actions minutes（プランの無料枠超過分）が発生し得ます。デプロイ頻度に比例する従量分以外の固定追加費用はありません。
